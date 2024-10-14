@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 use clap::{Parser, ValueEnum};
 use rand::random;
-pub use crate::life::{LifeWorld, LifeCell};
+pub use crate::life::{LifeWorld, LifeCell, LifePattern};
 use crate::ui::{Camera, Terminal};
 mod life;
 mod ui;
@@ -12,10 +12,8 @@ struct Args {
     #[arg(short = 'd', long = "duration", default_value = "10.0")] duration: f64,
     #[arg(short = 'r', long = "rate", default_value = "250")]
     rate: u64,
-    #[arg(short = 's', long = "snapshot")]
-    snapshot: bool,
-    #[arg(short = 'p', long = "pattern", value_enum, default_value_t = Pattern::Glider)]
-    pattern: Pattern,
+    #[arg(short = 'p', long = "pattern", value_enum, default_value_t = LifePattern::Glider)]
+    pattern: LifePattern,
 }
 
 impl Args {
@@ -28,15 +26,7 @@ impl Args {
     }
 }
 
-#[derive(Clone, Debug)]
-enum Pattern {
-    Glider,
-    Blinker,
-    Beacon,
-    Random,
-}
-
-impl ValueEnum for Pattern {
+impl ValueEnum for LifePattern {
     fn value_variants<'a>() -> &'a [Self] {
         &[Self::Glider, Self::Blinker, Self::Beacon, Self::Random]
     }
@@ -51,64 +41,89 @@ impl ValueEnum for Pattern {
     }
 }
 
-fn create_world(pattern: Pattern) -> LifeWorld {
-    let mut world = LifeWorld::new();
-    match pattern {
-        Pattern::Glider => {
-            world.raise_cell(0, 0);
-            world.raise_cell(1, 0);
-            world.raise_cell(2, 0);
-            world.raise_cell(2, 1);
-            world.raise_cell(1, 2);
-        }
-        Pattern::Blinker => {
-            world.raise_cell(0, 0);
-            world.raise_cell(0, 1);
-            world.raise_cell(0, 2);
-        }
-        Pattern::Beacon => {
-            world.raise_cell(0, 0);
-            world.raise_cell(0, 1);
-            world.raise_cell(1, 0);
-            world.raise_cell(1, 1);
-            world.raise_cell(2, 2);
-            world.raise_cell(3, 2);
-            world.raise_cell(2, 3);
-            world.raise_cell(3, 3);
-        }
-        Pattern::Random => {
-            for _ in 0..1000 {
-                let x = random::<i32>() % 80;
-                let y = random::<i32>() % 25;
-                world.raise_cell(x, y);
-            }
+#[derive(Clone, Debug)]
+enum Command {
+    Start,
+    Pause,
+    Resume,
+    Quit,
+}
+
+#[derive(Clone, Debug)]
+enum State {
+    Setup,
+    Running,
+    Paused,
+}
+
+impl State {
+    fn handle_command(&mut self, command: &Command) -> Result<&State, String> {
+        match (self.clone(), command) {
+            (Self::Setup, Command::Start) | (Self::Paused, Command::Resume) => {
+                *self = Self::Running;
+                Ok(self)
+            },
+            (Self::Running, Command::Pause) => {
+                *self = Self::Paused;
+                Ok(self)
+            },
+            (Self::Running, Command::Start | Command::Resume) | (Self::Paused, Command::Pause) => {
+                Ok(self)
+            },
+            (_, Command::Quit) => {
+                *self = Self::Setup;
+                Ok(self)
+            },
+            _ => {
+                Err(format!("Invalid command {:?} for state {:?}", command, self))
+            },
         }
     }
-    world
+}
+
+#[derive(Debug)]
+struct Program {
+    state: State,
+    world: LifeWorld,
+    camera: Camera,
+    terminal: Terminal,
+    rate_ms: u64,
+}
+
+impl Program {
+    fn new(args: Args) -> Self {
+        let state = State::Setup;
+        let camera = Camera::new();
+        let terminal = Terminal::new();
+        let world = LifeWorld::from(&args.pattern);
+        let rate_ms = args.rate;
+        Self { state, world, camera, terminal, rate_ms }
+    }
+
+    fn run(&mut self, duration_ms: u64) {
+        match self.state.handle_command(&Command::Start) {
+            Ok(_) => (),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                return;
+            }
+        }
+        self.terminal.clear();
+        let duration_steps = duration_ms / self.rate_ms;
+        let mut count = 0;
+        while count < duration_steps {
+            self.terminal.reset_cursor();
+            self.camera.render(&self.world, self.terminal.width, self.terminal.height);
+            wait(self.rate_ms);
+            self.world.evolve();
+            count += 1;
+        }
+    }
+    
 }
 
 fn wait(time: u64) {
     thread::sleep(Duration::from_millis(time));
-}
-
-fn render_loop(world: &mut LifeWorld, camera: &Camera, terminal: &Terminal, duration_ms: u64, rate_ms: u64) {
-    terminal.clear();
-    let duration_steps = duration_ms / rate_ms;
-    let mut count = 0;
-    while count < duration_steps {
-        terminal.reset_cursor();
-        camera.render(&world, terminal.width, terminal.height);
-        wait(rate_ms);
-        world.evolve();
-        count += 1;
-    }
-}
-
-fn render_snapshot(world: &LifeWorld, camera: &Camera, terminal: &Terminal, duration_ms: u64) {
-    terminal.clear();
-    terminal.reset_cursor();
-    camera.render(&world, terminal.width, terminal.height);
-    wait(duration_ms);
 }
 
 fn main() {
@@ -117,15 +132,8 @@ fn main() {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
-
-    let camera = Camera::new();
-    let terminal = Terminal::new();
-    let mut world = create_world(args.pattern);
-
     let duration_ms = (args.duration * 1000.0).round_ties_even() as u64;
-    let rate_ms = args.rate;
-    match args.snapshot {
-        false => render_loop(&mut world, &camera, &terminal, duration_ms, rate_ms),
-        true => render_snapshot(&world, &camera, &terminal, duration_ms),
-    }
+
+    let mut program = Program::new(args);
+    program.run(duration_ms);
 }

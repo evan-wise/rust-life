@@ -1,14 +1,22 @@
 use std::collections::HashMap;
+use rand::random;
 
-#[derive(Debug)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct LifeCell {
     pub alive: bool,
     pub x: i32,
     pub y: i32,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
+pub enum LifePattern {
+    Glider,
+    Blinker,
+    Beacon,
+    Random,
+}
+
+#[derive(Clone, Debug)]
 pub struct LifeWorld {
     active_cells: HashMap<(i32,i32), LifeCell>,
 }
@@ -18,6 +26,42 @@ impl LifeWorld {
         LifeWorld {
             active_cells: HashMap::new(),
         }
+    }
+
+    pub fn from(pattern: &LifePattern) -> LifeWorld {
+        let mut world = LifeWorld::new();
+        match pattern {
+            LifePattern::Glider => {
+                world.raise_cell(0, 0);
+                world.raise_cell(1, 0);
+                world.raise_cell(2, 0);
+                world.raise_cell(2, 1);
+                world.raise_cell(1, 2);
+            }
+            LifePattern::Blinker => {
+                world.raise_cell(0, 0);
+                world.raise_cell(0, 1);
+                world.raise_cell(0, 2);
+            }
+            LifePattern::Beacon => {
+                world.raise_cell(0, 0);
+                world.raise_cell(0, 1);
+                world.raise_cell(1, 0);
+                world.raise_cell(1, 1);
+                world.raise_cell(2, 2);
+                world.raise_cell(3, 2);
+                world.raise_cell(2, 3);
+                world.raise_cell(3, 3);
+            }
+            LifePattern::Random => {
+                for _ in 0..1000 {
+                    let x = random::<i32>() % 80;
+                    let y = random::<i32>() % 25;
+                    world.raise_cell(x, y);
+                }
+            }
+        }
+        world
     }
 
     pub fn raise_cell(&mut self, x: i32, y: i32) {
