@@ -88,6 +88,7 @@ struct Program {
     camera: Camera,
     terminal: Terminal,
     rate_ms: u64,
+    duration_ms: u64,
 }
 
 impl Program {
@@ -97,10 +98,11 @@ impl Program {
         let terminal = Terminal::new();
         let world = LifeWorld::from(&args.pattern);
         let rate_ms = args.rate;
-        Self { state, world, camera, terminal, rate_ms }
+        let duration_ms = (args.duration * 1000.0).round_ties_even() as u64;
+        Self { state, world, camera, terminal, rate_ms, duration_ms }
     }
 
-    fn run(&mut self, duration_ms: u64) {
+    fn run(&mut self) {
         match self.state.handle_command(&Command::Start) {
             Ok(_) => (),
             Err(e) => {
@@ -109,7 +111,7 @@ impl Program {
             }
         }
         self.terminal.clear();
-        let duration_steps = duration_ms / self.rate_ms;
+        let duration_steps = self.duration_ms / self.rate_ms;
         let mut count = 0;
         while count < duration_steps {
             self.terminal.reset_cursor();
@@ -119,7 +121,6 @@ impl Program {
             count += 1;
         }
     }
-    
 }
 
 fn wait(time: u64) {
@@ -129,11 +130,10 @@ fn wait(time: u64) {
 fn main() {
     let args = Args::parse();
     if let Err(e) = args.validate() {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
-    let duration_ms = (args.duration * 1000.0).round_ties_even() as u64;
 
     let mut program = Program::new(args);
-    program.run(duration_ms);
+    program.run();
 }
