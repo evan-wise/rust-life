@@ -1,6 +1,10 @@
-use std::io::Write;
-use terminal_size::{terminal_size, Width, Height};
 use crate::life::LifeWorld;
+use std::io::{self, Write};
+use crossterm::{
+    event::{self, Event, KeyCode}, ExecutableCommand
+};
+use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode, size, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::cursor::{MoveTo, Hide, Show};
 
 macro_rules! flush {
     () => {
@@ -41,62 +45,54 @@ impl Camera {
     }
 }
 
-fn acquire_terminal() {
-    // Save cursor position
-    print!("\x1B7");
-    // Hide cursor
-    print!("\x1B[?25l");
-    // Enter alternate screen buffer
-    print!("\x1B[?1049h");
-    flush!();
-}
-
-fn release_terminal() {
-    // Exit alternate screen buffer
-    print!("\x1B[?1049l");
-    // Restore cursor position
-    print!("\x1B8");
-    // Show cursor
-    print!("\x1B[?25h");
-    flush!();
-}
-
 #[derive(Debug)]
-pub struct Terminal {
+pub struct Screen {
     pub width: u16,
     pub height: u16,
+    pub camera: Camera,
 }
 
-impl Terminal {
-    pub fn new() -> Terminal {
-        acquire_terminal();
-        match terminal_size() {
-            Some((Width(w), Height(h))) => {
-                Terminal { width: w, height: h }
-            },
-            None => {
-                release_terminal();
-                println!("Unable to get terminal size");
-                std::process::exit(1);
-            },
-        }
+impl Screen {
+    pub fn new() -> Result<Screen, io::Error>{
+        Screen::acquire_terminal()?;
+        let (w, h) = size()?;
+        let camera = Camera::new();
+        Ok(Screen { width: w, height: h, camera })
     }
 
-    pub fn clear(&self) {
-        // Clear screen
-        print!("\x1B[2J\x1B[1;1H");
-        flush!();
+    pub fn acquire_terminal() -> Result<(), io::Error> {
+        let mut stdout = io::stdout();
+        stdout.execute(EnterAlternateScreen)?;
+        enable_raw_mode()?;
+        stdout.execute(Hide)?;
+        Ok(())
     }
 
-    pub fn reset_cursor(&self) {
-        // Move cursor to top-left
-        print!("\x1B[1;1H");
-        flush!();
+    pub fn release_terminal() -> Result<(), io::Error> {
+        let mut stdout = io::stdout();
+        stdout.execute(LeaveAlternateScreen)?;
+        disable_raw_mode()?;
+        stdout.execute(Show)?;
+        Ok(())
+    }
+
+    pub fn clear(&self) -> Result<(), io::Error> {
+        let mut stdout = io::stdout();
+        stdout.execute(Clear(ClearType::All))?;
+        Ok(())
+    }
+
+    pub fn reset_cursor(&self) -> Result<(), io::Error> {
+        let mut stdout = io::stdout();
+        stdout.execute(MoveTo(0, 0))?;
+        Ok(())
     }
 }
 
-impl Drop for Terminal {
+impl Drop for Screen {
     fn drop(&mut self) {
-        release_terminal();
+        if let Err(e) = Screen::release_terminal() {
+            eprintln!("Error releasing terminal: {}", e);
+        }
     }
 }
