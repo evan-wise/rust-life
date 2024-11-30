@@ -1,12 +1,12 @@
+use clap::{Parser, ValueEnum};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use ctrlc;
+use std::io;
+use std::time::{Duration, Instant};
 mod life;
 mod ui;
-pub use crate::life::{LifeWorld, LifeCell, LifePattern};
-use crate::ui::{Camera, Screen};
-use std::time::{Instant, Duration};
-use std::io;
-use crossterm::event::{self, Event, KeyEvent, KeyCode, KeyModifiers};
-use clap::{Parser, ValueEnum};
-use ctrlc;
+pub use crate::life::{LifeCell, LifePattern, LifeWorld};
+use crate::ui::Screen;
 
 #[derive(Clone, Debug)]
 enum Command {
@@ -30,21 +30,22 @@ impl State {
             (Self::Setup, Command::Start) | (Self::Paused, Command::Resume) => {
                 *self = Self::Running;
                 Ok(self)
-            },
+            }
             (Self::Running, Command::Pause) => {
                 *self = Self::Paused;
                 Ok(self)
-            },
+            }
             (Self::Running, Command::Start | Command::Resume) | (Self::Paused, Command::Pause) => {
                 Ok(self)
-            },
+            }
             (_, Command::Quit) => {
                 *self = Self::Done;
                 Ok(self)
-            },
-            _ => {
-                Err(format!("Invalid command {:?} for state {:?}", command, self))
-            },
+            }
+            _ => Err(format!(
+                "Invalid command {:?} for state {:?}",
+                command, self
+            )),
         }
     }
 }
@@ -98,7 +99,6 @@ impl From<String> for ProgramError {
 struct Program {
     state: State,
     world: LifeWorld,
-    camera: Camera,
     screen: Screen,
     rate_ms: u64,
     duration_ms: u64,
@@ -111,7 +111,6 @@ impl Program {
         let duration_ms = (args.duration * 1000.0).round_ties_even() as u64;
 
         let screen = Screen::new()?;
-        let camera = Camera::new();
         let world = LifeWorld::from(&args.pattern);
         // Since we are using raw mode, we will have to handle this ourselves
         // later but catch the signal just in case the SIGINT gets sent by an
@@ -123,7 +122,13 @@ impl Program {
             println!("Received Ctrl-C, exiting...");
             std::process::exit(0);
         })?;
-        Ok(Self { state, world, camera, screen, rate_ms, duration_ms })
+        Ok(Self {
+            state,
+            world,
+            screen,
+            rate_ms,
+            duration_ms,
+        })
     }
 
     fn run(&mut self) -> Result<(), ProgramError> {
@@ -142,56 +147,63 @@ impl Program {
                                 timestep_start = Instant::now();
                                 count += 1;
                                 self.world.evolve();
-                                self.screen.reset_cursor()?;
-                                self.camera.render(&self.world, self.screen.width, self.screen.height);
+                                self.screen.render(&self.world)?;
                             }
-                        },
+                        }
                         State::Done => {
                             break;
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
                 }
                 Ok(())
-            },
-            _ => return Err(ProgramError::CommandError("Run called in invalid state".to_string())),
+            }
+            _ => {
+                return Err(ProgramError::CommandError(
+                    "Run called in invalid state".to_string(),
+                ))
+            }
         }
     }
 
     pub fn handle_input(&mut self) -> Result<(), ProgramError> {
-        if event::poll(Duration::from_millis(16))? { // ~60 fps
-            if let Event::Key(KeyEvent { code, modifiers, .. }) = event::read()? {
+        if event::poll(Duration::from_millis(16))? {
+            // ~60 fps
+            if let Event::Key(KeyEvent {
+                code, modifiers, ..
+            }) = event::read()?
+            {
                 match code {
                     KeyCode::Esc => {
                         self.state.handle_command(&Command::Quit)?;
-                    },
+                    }
                     KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
                         self.state.handle_command(&Command::Quit)?;
-                    },
-                    KeyCode::Char(' ') => {
-                        match self.state {
-                            State::Running => {
-                                self.state.handle_command(&Command::Pause)?;
-                            },
-                            State::Paused => {
-                                self.state.handle_command(&Command::Resume)?;
-                            },
-                            _ => {},
+                    }
+                    KeyCode::Char(' ') => match self.state {
+                        State::Running => {
+                            self.state.handle_command(&Command::Pause)?;
                         }
+                        State::Paused => {
+                            self.state.handle_command(&Command::Resume)?;
+                        }
+                        _ => {}
                     },
                     KeyCode::Up => {
-                        self.camera.y += 1;
-                    },
+                        self.screen.camera.y += 1;
+                    }
                     KeyCode::Down => {
-                        self.camera.y -= 1;
-                    },
+                        self.screen.camera.y -= 1;
+                    }
                     KeyCode::Left => {
-                        self.camera.x -= 1;
-                    },
+                        self.screen.camera.x -= 1;
+                    }
                     KeyCode::Right => {
-                        self.camera.x += 1;
-                    },
-                    _ => {}, } }
+                        self.screen.camera.x += 1;
+                    }
+                    _ => {}
+                }
+            }
         }
         Ok(())
     }
@@ -200,7 +212,8 @@ impl Program {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(short = 'd', long = "duration", default_value = "10.0")] duration: f64,
+    #[arg(short = 'd', long = "duration", default_value = "10.0")]
+    duration: f64,
     #[arg(short = 'r', long = "rate", default_value = "100")]
     rate: u64,
     #[arg(short = 'p', long = "pattern", value_enum, default_value_t = LifePattern::Glider)]
@@ -210,7 +223,9 @@ struct Args {
 impl Args {
     fn validate(&self) -> Result<(), ProgramError> {
         if self.duration <= 0.0 {
-            return Err(ProgramError::ValidationError("Duration must be positive".to_string()));
+            return Err(ProgramError::ValidationError(
+                "Duration must be positive".to_string(),
+            ));
         }
         Ok(())
     }
@@ -243,16 +258,16 @@ fn main() {
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1);
-        },
+        }
     };
 
     match program.run() {
         Ok(_) => {
             println!("Program completed successfully");
-        },
+        }
         Err(e) => {
             eprintln!("{}", e);
             std::process::exit(1);
-        },
+        }
     }
 }

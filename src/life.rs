@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use rand::random;
+use std::collections::HashMap;
 
 #[derive(Copy, Clone, Debug)]
 pub struct LifeCell {
@@ -18,7 +18,7 @@ pub enum LifePattern {
 
 #[derive(Clone, Debug)]
 pub struct LifeWorld {
-    active_cells: HashMap<(i32,i32), LifeCell>,
+    active_cells: HashMap<(i32, i32), LifeCell>,
 }
 
 impl LifeWorld {
@@ -68,16 +68,23 @@ impl LifeWorld {
         for dy in -1..=1 {
             for dx in -1..=1 {
                 if dx == 0 && dy == 0 {
-                    self.active_cells.insert((x,y), LifeCell { alive: true, x, y });
+                    self.active_cells
+                        .insert((x, y), LifeCell { alive: true, x, y });
                 } else {
-                    self.active_cells.entry((x + dx, y + dy)).or_insert(LifeCell { alive: false, x: x + dx, y: y + dy });
+                    self.active_cells
+                        .entry((x + dx, y + dy))
+                        .or_insert(LifeCell {
+                            alive: false,
+                            x: x + dx,
+                            y: y + dy,
+                        });
                 }
             }
         }
     }
 
     pub fn get(&self, x: i32, y: i32) -> Option<LifeCell> {
-        match self.active_cells.get(&(x,y)) {
+        match self.active_cells.get(&(x, y)) {
             Some(cell) => Some(*cell),
             None => None,
         }
@@ -105,27 +112,49 @@ impl LifeWorld {
             let neighbors = self.get_neighbors(cell.x, cell.y);
             let live_neighbors = neighbors.iter().filter(|c| c.alive).count();
             match (cell.alive, live_neighbors) {
-                (true, 2) | (true, 3) => { new_cells.insert(*pos, *cell); },
+                (true, 2) | (true, 3) => {
+                    new_cells.insert(*pos, *cell);
+                }
                 (true, 0) => (),
                 (true, _) => {
-                    new_cells.insert(*pos, LifeCell { alive: false, ..*cell});
-                },
+                    new_cells.insert(
+                        *pos,
+                        LifeCell {
+                            alive: false,
+                            ..*cell
+                        },
+                    );
+                }
                 (false, 3) => {
                     for dy in -1..=1 {
                         for dx in -1..=1 {
                             match new_cells.get(&(cell.x + dx, cell.y + dy)) {
                                 Some(_) => continue,
-                                None if dx == 0 && dy == 0 => new_cells.insert((cell.x + dx, cell.y + dy), LifeCell { alive: true, ..*cell }),
-                                None => new_cells.insert((cell.x + dx, cell.y + dy), LifeCell { alive: false, x: cell.x + dx, y: cell.y + dy }),
+                                None if dx == 0 && dy == 0 => new_cells.insert(
+                                    (cell.x + dx, cell.y + dy),
+                                    LifeCell {
+                                        alive: true,
+                                        ..*cell
+                                    },
+                                ),
+                                None => new_cells.insert(
+                                    (cell.x + dx, cell.y + dy),
+                                    LifeCell {
+                                        alive: false,
+                                        x: cell.x + dx,
+                                        y: cell.y + dy,
+                                    },
+                                ),
                             };
                         }
                     }
-                },
+                }
                 (false, 0) => (),
-                (false, _) => { new_cells.insert(*pos, *cell); },
+                (false, _) => {
+                    new_cells.insert(*pos, *cell);
+                }
             }
         }
         self.active_cells = new_cells;
     }
-} 
-    
+}
