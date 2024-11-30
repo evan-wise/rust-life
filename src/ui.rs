@@ -70,8 +70,8 @@ impl Screen {
         self.reset_cursor()?;
         let x0 = self.camera.x - (self.width as i32 / 2);
         let y0 = self.camera.y - (self.height as i32 / 2);
-        let x1 = self.camera.x + (self.width as i32 / 2);
-        let y1 = self.camera.y + (self.height as i32 / 2);
+        let x1 = self.camera.x + (self.width as i32 / 2) + (self.width as i32 % 2);
+        let y1 = self.camera.y + (self.height as i32 / 2) + (self.height as i32 % 2);
         for y in (y0..y1).rev() {
             for x in x0..x1 {
                 match (x, y, world.get(x, y)) {
