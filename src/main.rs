@@ -147,7 +147,6 @@ impl Program {
                                 timestep_start = Instant::now();
                                 count += 1;
                                 self.world.evolve();
-                                self.screen.render(&self.world)?;
                             }
                         }
                         State::Done => {
@@ -155,6 +154,7 @@ impl Program {
                         }
                         _ => {}
                     }
+                    self.screen.render(&self.world)?;
                 }
                 Ok(())
             }
