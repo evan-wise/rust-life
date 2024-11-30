@@ -71,21 +71,26 @@ impl Screen {
         let x0 = self.camera.x - (self.width as i32 / 2);
         let y0 = self.camera.y - (self.height as i32 / 2);
         let x1 = self.camera.x + (self.width as i32 / 2) + (self.width as i32 % 2);
-        let y1 = self.camera.y + (self.height as i32 / 2) + (self.height as i32 % 2);
+        // Leave two blank rows for status area
+        let y1 = self.camera.y + (self.height as i32 / 2) + (self.height as i32 % 2) - 2;
+                                                                                          
         for y in (y0..y1).rev() {
             for x in x0..x1 {
                 match (x, y, world.get(x, y)) {
-                    (_x, _y, Some(cell)) if cell.alive => print!("\u{2588}"),
-                    (_, _, Some(_)) => print!("\u{2591}"),
-                    (x, y, None) if x == 0 && y == 0 => print!("\u{25CF}"),
-                    (x, y, None) if x % 4 == 0 && y % 4 == 0 => print!("+"),
-                    (x, _, None) if x % 8 == 0 => print!("|"),
-                    (_, y, None) if y % 8 == 0 => print!("-"),
+                    (_x, _y, Some(cell)) if cell.alive => print!("█"),
+                    (_, _, Some(_)) => print!("░"),
+                    (x, y, None) if x == 0 && y == 0 => print!("●"),
+                    (x, y, None) if x % 4 == 0 && y % 4 == 0 => print!("┼"),
+                    (x, _, None) if x % 8 == 0 => print!("│"),
+                    (_, y, None) if y % 8 == 0 => print!("─"),
                     (_, _, _) => print!(" "),
                 }
             }
             io::stdout().flush()?;
         }
+        let bar = std::iter::repeat("━").take(self.width.into()).collect::<String>();
+        print!("{}", bar);
+        print!("alive: {}", world.num_alive());
         Ok(())
     }
 }

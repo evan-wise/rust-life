@@ -157,4 +157,14 @@ impl LifeWorld {
         }
         self.active_cells = new_cells;
     }
+
+    pub fn num_alive(&self) -> i32 {
+        let mut count = 0;
+        for cell in self.active_cells.values() {
+            if cell.alive {
+                count += 1;
+            }
+        }
+        count
+    }
 }
