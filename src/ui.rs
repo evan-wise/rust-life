@@ -1,4 +1,4 @@
-use crate::life::LifeWorld;
+use crate::Program;
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen,
@@ -66,17 +66,17 @@ impl Screen {
         Ok(())
     }
 
-    pub fn render(&self, world: &LifeWorld) -> Result<(), io::Error> {
+    pub fn render(&self, program: &Program) -> Result<(), io::Error> {
         self.reset_cursor()?;
         let x0 = self.camera.x - (self.width as i32 / 2);
         let y0 = self.camera.y - (self.height as i32 / 2);
         let x1 = self.camera.x + (self.width as i32 / 2) + (self.width as i32 % 2);
         // Leave two blank rows for status area
         let y1 = self.camera.y + (self.height as i32 / 2) + (self.height as i32 % 2) - 2;
-                                                                                          
+
         for y in (y0..y1).rev() {
             for x in x0..x1 {
-                match (x, y, world.get(x, y)) {
+                match (x, y, program.world.get(x, y)) {
                     (_x, _y, Some(cell)) if cell.alive => print!("█"),
                     (_, _, Some(_)) => print!("░"),
                     (x, y, None) if x == 0 && y == 0 => print!("●"),
@@ -88,9 +88,27 @@ impl Screen {
             }
             io::stdout().flush()?;
         }
-        let bar = std::iter::repeat("━").take(self.width.into()).collect::<String>();
-        print!("{}", bar);
-        print!("alive: {}", world.num_alive());
+
+        for x in x0..x1 {
+            if x % 8 == 0 {
+                print!("┷");
+            } else {
+                print!("━");
+            }
+        }
+
+        let status = format!(
+            "alive: {}, timestep: {}ms ({:.3}), render: {}ms",
+            program.world.num_alive(),
+            program.perf.measured_timestep_ms,
+            (program.perf.measured_timestep_ms as f64) / (program.timestep_ms as f64),
+            program.perf.render_ms,
+        );
+        let pad = std::iter::repeat(" ")
+            .take(usize::from(self.width) - status.len())
+            .collect::<String>();
+        print!("{}{}", status, pad);
+
         Ok(())
     }
 }
