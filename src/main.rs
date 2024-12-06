@@ -150,8 +150,7 @@ impl Program {
     }
 
     fn handle_input(&mut self) -> Result<(), ProgramError> {
-        // ~60 fps
-        if event::poll(Duration::from_millis(16))? {
+        if event::poll(Duration::from_millis(0))? {
             if let Event::Key(KeyEvent {
                 code, modifiers, ..
             }) = event::read()?
