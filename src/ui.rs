@@ -98,7 +98,7 @@ impl Screen {
         }
 
         let status = format!(
-            "alive: {}, timestep: {}ms ({:.3}), render: {}ms",
+            "alive: {}, timestep: {}ms ({:.2}), render: {}ms",
             program.world.num_alive(),
             program.perf.measured_timestep_ms,
             (program.perf.measured_timestep_ms as f64) / (program.timestep_ms as f64),
