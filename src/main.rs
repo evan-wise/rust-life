@@ -135,7 +135,7 @@ impl Program {
                         State::Done => {
                             break;
                         }
-                        _ => {}
+                        _ => (),
                     }
                     let render_start = Instant::now();
                     self.screen.render(&self)?;
@@ -171,7 +171,7 @@ impl Program {
                         State::Paused => {
                             self.state.handle_command(&Command::Resume)?;
                         }
-                        _ => {}
+                        _ => (),
                     },
                     KeyCode::Up => {
                         self.screen.camera.y += 1;
@@ -185,7 +185,7 @@ impl Program {
                     KeyCode::Right => {
                         self.screen.camera.x += 1;
                     }
-                    _ => {}
+                    _ => (),
                 }
             }
         }
