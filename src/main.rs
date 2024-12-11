@@ -122,7 +122,9 @@ impl Program {
                     self.handle_input()?;
                     match self.state {
                         State::Running => {
-                            if timestep_start.elapsed() >= Duration::from_millis(self.timestep_ms.into()) {
+                            if timestep_start.elapsed()
+                                >= Duration::from_millis(self.timestep_ms.into())
+                            {
                                 self.perf.measured_timestep_ms =
                                     timestep_start.elapsed().as_millis() as u64;
                                 timestep_start = Instant::now();
