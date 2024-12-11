@@ -86,7 +86,6 @@ impl Screen {
                     (_, _, _) => print!(" "),
                 }
             }
-            io::stdout().flush()?;
         }
 
         for x in x0..x1 {
@@ -108,6 +107,7 @@ impl Screen {
             .take(usize::from(self.width) - status.len())
             .collect::<String>();
         print!("{}{}", status, pad);
+        io::stdout().flush()?;
 
         Ok(())
     }
