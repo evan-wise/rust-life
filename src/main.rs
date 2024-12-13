@@ -115,11 +115,11 @@ impl Program {
             State::Setup => {
                 self.screen.clear()?;
                 self.state.handle_command(&Command::Start)?;
+
                 let duration_steps = self.duration_ms / self.timestep_ms;
                 let mut count = 0;
                 let mut timestep_start = Instant::now();
                 while count < duration_steps {
-                    self.handle_input()?;
                     match self.state {
                         State::Running => {
                             if timestep_start.elapsed()
@@ -127,9 +127,9 @@ impl Program {
                             {
                                 self.perf.measured_timestep_ms =
                                     timestep_start.elapsed().as_millis() as u64;
-                                timestep_start = Instant::now();
-                                count += 1;
                                 self.world.evolve();
+                                count += 1;
+                                timestep_start = Instant::now();
                             }
                         }
                         State::Done => {
@@ -137,6 +137,7 @@ impl Program {
                         }
                         _ => (),
                     }
+                    self.handle_input()?;
                     let render_start = Instant::now();
                     self.screen.render(&self)?;
                     self.perf.render_ms = render_start.elapsed().as_millis() as u64;
@@ -152,7 +153,7 @@ impl Program {
     }
 
     fn handle_input(&mut self) -> Result<(), ProgramError> {
-        if event::poll(Duration::from_millis(0))? {
+        if event::poll(Duration::from_millis(10))? {
             if let Event::Key(KeyEvent {
                 code, modifiers, ..
             }) = event::read()?
