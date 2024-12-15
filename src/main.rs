@@ -1,5 +1,5 @@
 use clap::{Parser, ValueEnum};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyEvent };
 use ctrlc;
 use std::io;
 use std::time::{Duration, Instant};
@@ -8,30 +8,12 @@ mod ui;
 pub use crate::life::{LifeCell, LifePattern, LifeWorld};
 use crate::ui::Screen;
 
-fn main() {
+fn main() -> Result<(), ProgramError> {
     let args = Args::parse();
-    if let Err(e) = args.validate() {
-        eprintln!("{}", e);
-        std::process::exit(1);
-    }
-
-    let mut program = match Program::new(args) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1);
-        }
-    };
-
-    match program.run() {
-        Ok(_) => {
-            println!("Program completed successfully");
-        }
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1);
-        }
-    }
+    args.validate()?;
+    let mut program = Program::new(args)?;
+    program.run()?;
+    Ok(())
 }
 
 #[derive(Parser, Debug)]
