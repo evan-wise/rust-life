@@ -10,7 +10,6 @@ use crate::ui::Screen;
 
 fn main() -> Result<(), ProgramError> {
     let args = Args::parse();
-    args.validate()?;
     let mut program = Program::new(args)?;
     program.run()?;
     Ok(())
@@ -23,12 +22,6 @@ struct Args {
     timestep: u32,
     #[arg(short = 'p', long = "pattern", value_enum, default_value_t = LifePattern::Glider)]
     pattern: LifePattern,
-}
-
-impl Args {
-    fn validate(&self) -> Result<(), ProgramError> {
-        Ok(())
-    }
 }
 
 impl ValueEnum for LifePattern {
@@ -220,7 +213,6 @@ impl State {
 #[derive(Debug)]
 enum ProgramError {
     IoError(io::Error),
-    ClapError(clap::Error),
     CtrlcError(ctrlc::Error),
     CommandError(String),
 }
@@ -229,7 +221,6 @@ impl std::fmt::Display for ProgramError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::IoError(e) => write!(f, "IoError: {:?}", e),
-            Self::ClapError(e) => write!(f, "ClapError: {:?}", e),
             Self::CtrlcError(e) => write!(f, "CtrlcError: {:?}", e),
             Self::CommandError(e) => write!(f, "CommandError: {:?}", e),
         }
@@ -239,12 +230,6 @@ impl std::fmt::Display for ProgramError {
 impl From<io::Error> for ProgramError {
     fn from(e: io::Error) -> Self {
         Self::IoError(e)
-    }
-}
-
-impl From<clap::Error> for ProgramError {
-    fn from(e: clap::Error) -> Self {
-        Self::ClapError(e)
     }
 }
 
