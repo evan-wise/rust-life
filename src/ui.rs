@@ -69,10 +69,9 @@ impl Screen {
     pub fn render(&self, program: &Program) -> Result<(), io::Error> {
         self.reset_cursor()?;
         let x0 = self.camera.x - (self.width as i32 / 2);
-        let y0 = self.camera.y - (self.height as i32 / 2);
+        let y0 = self.camera.y - (self.height as i32 / 2) + 1;
         let x1 = self.camera.x + (self.width as i32 / 2) + (self.width as i32 % 2);
-        // Leave two blank rows for status area
-        let y1 = self.camera.y + (self.height as i32 / 2) + (self.height as i32 % 2) - 2;
+        let y1 = self.camera.y + (self.height as i32 / 2) + (self.height as i32 % 2) - 1;
 
         for y in (y0..y1).rev() {
             for x in x0..x1 {
