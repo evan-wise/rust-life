@@ -37,8 +37,6 @@ fn main() {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(short = 'd', long = "duration", default_value = "10.0")]
-    duration: f64,
     #[arg(short = 't', long = "timestep", default_value = "100")]
     timestep: u32,
     #[arg(short = 'p', long = "pattern", value_enum, default_value_t = LifePattern::Glider)]
@@ -47,11 +45,6 @@ struct Args {
 
 impl Args {
     fn validate(&self) -> Result<(), ProgramError> {
-        if self.duration <= 0.0 {
-            return Err(ProgramError::ValidationError(
-                "Duration must be positive".to_string(),
-            ));
-        }
         Ok(())
     }
 }
@@ -77,7 +70,6 @@ struct Program {
     pub world: LifeWorld,
     pub screen: Screen,
     pub timestep_ms: u32,
-    pub duration_ms: u32,
     pub perf: Performance,
 }
 
@@ -86,7 +78,6 @@ impl Program {
         let state = State::Setup;
         let perf = Performance::new();
         let timestep_ms = args.timestep;
-        let duration_ms = (args.duration * 1000.0).round_ties_even() as u32;
 
         let screen = Screen::new()?;
         let world = LifeWorld::from(&args.pattern);
@@ -105,7 +96,6 @@ impl Program {
             world,
             screen,
             timestep_ms,
-            duration_ms,
             perf,
         })
     }
@@ -116,10 +106,8 @@ impl Program {
                 self.screen.clear()?;
                 self.state.handle_command(&Command::Start)?;
 
-                let duration_steps = self.duration_ms / self.timestep_ms;
-                let mut count = 0;
                 let mut timestep_start = Instant::now();
-                while count < duration_steps {
+                loop {
                     match self.state {
                         State::Running => {
                             if timestep_start.elapsed()
@@ -128,7 +116,6 @@ impl Program {
                                 self.perf.measured_timestep_ms =
                                     timestep_start.elapsed().as_millis() as u64;
                                 self.world.evolve();
-                                count += 1;
                                 timestep_start = Instant::now();
                             }
                         }
@@ -159,7 +146,7 @@ impl Program {
             }) = event::read()?
             {
                 match code {
-                    KeyCode::Esc => {
+                    KeyCode::Esc | KeyCode::Char('q') => {
                         self.state.handle_command(&Command::Quit)?;
                     }
                     KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
@@ -256,7 +243,6 @@ enum ProgramError {
     IoError(io::Error),
     ClapError(clap::Error),
     CtrlcError(ctrlc::Error),
-    ValidationError(String),
     CommandError(String),
 }
 
@@ -265,7 +251,6 @@ impl std::fmt::Display for ProgramError {
         match self {
             Self::IoError(e) => write!(f, "IoError: {:?}", e),
             Self::ClapError(e) => write!(f, "ClapError: {:?}", e),
-            Self::ValidationError(e) => write!(f, "ValidationError: {:?}", e),
             Self::CtrlcError(e) => write!(f, "CtrlcError: {:?}", e),
             Self::CommandError(e) => write!(f, "CommandError: {:?}", e),
         }
