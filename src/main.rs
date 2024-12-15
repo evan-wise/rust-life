@@ -140,10 +140,7 @@ impl Program {
 
     fn handle_input(&mut self) -> Result<(), ProgramError> {
         if event::poll(Duration::from_millis(10))? {
-            if let Event::Key(KeyEvent {
-                code, ..
-            }) = event::read()?
-            {
+            if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
                     KeyCode::Esc | KeyCode::Char('q') => {
                         self.state.handle_command(&Command::Quit)?;
