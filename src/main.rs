@@ -1,5 +1,5 @@
 use clap::{Parser, ValueEnum};
-use crossterm::event::{self, Event, KeyCode, KeyEvent };
+use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ctrlc;
 use std::io;
 use std::time::{Duration, Instant};
