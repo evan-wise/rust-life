@@ -173,6 +173,10 @@ impl Program {
                     KeyCode::Right => {
                         self.screen.camera.x += 1;
                     }
+                    KeyCode::Char('o') => {
+                        self.screen.camera.x = 0;
+                        self.screen.camera.y = 0;
+                    }
                     _ => (),
                 }
             }
