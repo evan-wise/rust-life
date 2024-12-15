@@ -81,9 +81,8 @@ impl Program {
 
         let screen = Screen::new()?;
         let world = LifeWorld::from(&args.pattern);
-        // Since we are using raw mode, we will have to handle this ourselves
-        // later but catch the signal just in case the SIGINT gets sent by an
-        // external process.
+        // Since we are using raw mode, Ctrl+C will not send a SIGINT but catch the signal just in
+        // case the SIGINT gets sent by an external process.
         ctrlc::set_handler(|| {
             if let Err(e) = Screen::release_terminal() {
                 eprintln!("Failed to release terminal: {:?}", e);
@@ -142,14 +141,11 @@ impl Program {
     fn handle_input(&mut self) -> Result<(), ProgramError> {
         if event::poll(Duration::from_millis(10))? {
             if let Event::Key(KeyEvent {
-                code, modifiers, ..
+                code, ..
             }) = event::read()?
             {
                 match code {
                     KeyCode::Esc | KeyCode::Char('q') => {
-                        self.state.handle_command(&Command::Quit)?;
-                    }
-                    KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
                         self.state.handle_command(&Command::Quit)?;
                     }
                     KeyCode::Char(' ') => match self.state {
