@@ -1,5 +1,5 @@
 use rand::random;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Copy, Clone, Debug)]
 pub struct LifeCell {
@@ -18,13 +18,13 @@ pub enum LifePattern {
 
 #[derive(Clone, Debug)]
 pub struct LifeWorld {
-    active_cells: HashMap<(i32, i32), LifeCell>,
+    active_cells: FxHashMap<(i32, i32), LifeCell>,
 }
 
 impl LifeWorld {
     pub fn new() -> LifeWorld {
         LifeWorld {
-            active_cells: HashMap::new(),
+            active_cells: FxHashMap::default(),
         }
     }
 
@@ -107,7 +107,7 @@ impl LifeWorld {
     }
 
     pub fn evolve(&mut self) {
-        let mut new_cells = HashMap::new();
+        let mut new_cells = FxHashMap::default();
 
         for (pos, cell) in &self.active_cells {
             let neighbors = self.get_neighbors(cell.x, cell.y);
