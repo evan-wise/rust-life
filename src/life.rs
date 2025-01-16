@@ -13,7 +13,7 @@ pub enum LifePattern {
     Glider,
     Blinker,
     Beacon,
-    Random,
+    Random(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -53,10 +53,11 @@ impl LifeWorld {
                 world.raise_cell(2, 3);
                 world.raise_cell(3, 3);
             }
-            LifePattern::Random => {
-                for _ in 0..1000 {
-                    let x = random::<i32>() % 80;
-                    let y = random::<i32>() % 25;
+            LifePattern::Random(size) => {
+                let side = (*size as f64).sqrt().round() as i32;
+                for _ in 0..*size {
+                    let x = random::<i32>() % side;
+                    let y = random::<i32>() % side;
                     world.raise_cell(x, y);
                 }
             }
