@@ -130,8 +130,7 @@ impl LifeWorld {
                     for dy in -1..=1 {
                         for dx in -1..=1 {
                             match new_cells.get(&(cell.x + dx, cell.y + dy)) {
-                                Some(_) => continue,
-                                None if dx == 0 && dy == 0 => new_cells.insert(
+                                _ if dx == 0 && dy == 0 => new_cells.insert(
                                     (cell.x + dx, cell.y + dy),
                                     LifeCell {
                                         alive: true,
@@ -146,6 +145,7 @@ impl LifeWorld {
                                         y: cell.y + dy,
                                     },
                                 ),
+                                Some(_) => continue,
                             };
                         }
                     }
