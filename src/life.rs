@@ -19,12 +19,14 @@ pub enum LifePattern {
 #[derive(Clone, Debug)]
 pub struct LifeWorld {
     active_cells: FxHashMap<(i32, i32), LifeCell>,
+    pub generations: usize,
 }
 
 impl LifeWorld {
     pub fn new() -> LifeWorld {
         LifeWorld {
             active_cells: FxHashMap::default(),
+            generations: 0,
         }
     }
 
@@ -157,6 +159,7 @@ impl LifeWorld {
             }
         }
         self.active_cells = new_cells;
+        self.generations += 1;
     }
 
     pub fn num_alive(&self) -> i32 {

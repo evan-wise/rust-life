@@ -96,11 +96,10 @@ impl Screen {
         }
 
         let status = format!(
-            "alive: {}, timestep: {}ms ({:.2}), render: {}ms",
+            "alive: {}, generations: {}, framerate: {:.2}Hz",
             program.world.num_alive(),
-            program.perf.measured_timestep_ms,
-            (program.perf.measured_timestep_ms as f64) / (program.timestep_ms as f64),
-            program.perf.render_ms,
+            program.world.generations,
+            program.framerate,
         );
         let pad = std::iter::repeat(" ")
             .take(usize::from(self.width) - status.len())

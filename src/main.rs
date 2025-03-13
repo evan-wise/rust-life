@@ -45,13 +45,12 @@ struct Program {
     pub world: LifeWorld,
     pub screen: Screen,
     pub timestep_ms: u32,
-    pub perf: Performance,
+    pub framerate: f64,
 }
 
 impl Program {
     fn new(args: Args) -> Result<Self, ProgramError> {
         let state = State::Setup;
-        let perf = Performance::new();
         let timestep_ms = args.timestep;
 
         let screen = Screen::new()?;
@@ -70,7 +69,7 @@ impl Program {
             world,
             screen,
             timestep_ms,
-            perf,
+            framerate: 1000. / timestep_ms as f64,
         })
     }
 
@@ -80,17 +79,14 @@ impl Program {
                 self.screen.clear()?;
                 self.state.handle_command(&Command::Start)?;
 
-                let mut timestep_start = Instant::now();
+                let mut timestep = Duration::new(0, 0);
                 loop {
+                    let loop_start = Instant::now();
                     match self.state {
                         State::Running => {
-                            if timestep_start.elapsed()
-                                >= Duration::from_millis(self.timestep_ms.into())
-                            {
-                                self.perf.measured_timestep_ms =
-                                    timestep_start.elapsed().as_millis() as u64;
+                            if timestep >= Duration::from_millis(self.timestep_ms.into()) {
+                                timestep = Duration::new(0, 0);
                                 self.world.evolve();
-                                timestep_start = Instant::now();
                             }
                         }
                         State::Done => {
@@ -99,9 +95,9 @@ impl Program {
                         _ => (),
                     }
                     self.handle_input()?;
-                    let render_start = Instant::now();
                     self.screen.render(&self)?;
-                    self.perf.render_ms = render_start.elapsed().as_millis() as u64;
+                    self.framerate = 1000. / loop_start.elapsed().as_millis() as f64;
+                    timestep += loop_start.elapsed();
                 }
                 Ok(())
             }
@@ -150,21 +146,6 @@ impl Program {
             }
         }
         Ok(())
-    }
-}
-
-#[derive(Debug)]
-struct Performance {
-    pub measured_timestep_ms: u64,
-    pub render_ms: u64,
-}
-
-impl Performance {
-    fn new() -> Performance {
-        Performance {
-            measured_timestep_ms: 0,
-            render_ms: 0,
-        }
     }
 }
 
