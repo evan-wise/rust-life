@@ -42,6 +42,8 @@ a dead neighbor.
 
 ## To-Do
 
+- Add tests
+- Switch to anyhow
 - Change evolve logic to mutate cells in place for better performance.
 - Add the ability to manually raise and kill cells.
 - Add "blank" pattern and make this default.
