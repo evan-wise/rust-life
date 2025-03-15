@@ -44,7 +44,7 @@ a dead neighbor.
 
 - Add tests
 - Switch to anyhow
-- Change evolve logic to mutate cells in place for better performance.
+- Test performance for larger grids
 - Add the ability to manually raise and kill cells.
 - Add "blank" pattern and make this default.
 - Add smoothing to framerate display.

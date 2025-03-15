@@ -1,13 +1,6 @@
 use rand::random;
 use rustc_hash::FxHashMap;
 
-#[derive(Copy, Clone, Debug)]
-pub struct LifeCell {
-    pub alive: bool,
-    pub x: i32,
-    pub y: i32,
-}
-
 #[derive(Clone, Debug)]
 pub enum LifePattern {
     Glider,
@@ -18,7 +11,7 @@ pub enum LifePattern {
 
 #[derive(Clone, Debug)]
 pub struct LifeWorld {
-    active_cells: FxHashMap<(i32, i32), LifeCell>,
+    active_cells: FxHashMap<(i32, i32), bool>,
     pub generations: usize,
 }
 
@@ -71,29 +64,22 @@ impl LifeWorld {
         for dy in -1..=1 {
             for dx in -1..=1 {
                 if dx == 0 && dy == 0 {
-                    self.active_cells
-                        .insert((x, y), LifeCell { alive: true, x, y });
+                    self.active_cells.insert((x, y), true);
                 } else {
-                    self.active_cells
-                        .entry((x + dx, y + dy))
-                        .or_insert(LifeCell {
-                            alive: false,
-                            x: x + dx,
-                            y: y + dy,
-                        });
+                    self.active_cells.entry((x + dx, y + dy)).or_insert(false);
                 }
             }
         }
     }
 
-    pub fn get(&self, x: i32, y: i32) -> Option<LifeCell> {
+    pub fn get(&self, x: i32, y: i32) -> Option<bool> {
         match self.active_cells.get(&(x, y)) {
             Some(cell) => Some(*cell),
             None => None,
         }
     }
 
-    pub fn get_neighbors(&self, x: i32, y: i32) -> Vec<LifeCell> {
+    pub fn get_neighbors(&self, x: i32, y: i32) -> Vec<bool> {
         let mut neighbors = Vec::new();
         for dy in -1..=1 {
             for dx in -1..=1 {
@@ -109,63 +95,57 @@ impl LifeWorld {
     }
 
     pub fn evolve(&mut self) {
-        let mut new_cells = FxHashMap::default();
 
+        let mut deltas = Vec::new();
         for (pos, cell) in &self.active_cells {
-            let neighbors = self.get_neighbors(cell.x, cell.y);
-            let live_neighbors = neighbors.iter().filter(|c| c.alive).count();
-            match (cell.alive, live_neighbors) {
-                (true, 2) | (true, 3) => {
-                    new_cells.insert(*pos, *cell);
-                }
-                (true, 0) => (),
+            let &(x, y) = pos;
+            let live_neighbors = self
+                .get_neighbors(x, y)
+                .into_iter()
+                .filter(|c| *c)
+                .count();
+            match (cell, live_neighbors) {
+                (true, 2) | (true, 3) => {}
                 (true, _) => {
-                    new_cells.insert(
-                        *pos,
-                        LifeCell {
-                            alive: false,
-                            ..*cell
-                        },
-                    );
+                    deltas.push((Some(false), *pos));
                 }
                 (false, 3) => {
+                    deltas.push((Some(true), *pos));
                     for dy in -1..=1 {
                         for dx in -1..=1 {
-                            match new_cells.get(&(cell.x + dx, cell.y + dy)) {
-                                _ if dx == 0 && dy == 0 => new_cells.insert(
-                                    (cell.x + dx, cell.y + dy),
-                                    LifeCell {
-                                        alive: true,
-                                        ..*cell
-                                    },
-                                ),
-                                None => new_cells.insert(
-                                    (cell.x + dx, cell.y + dy),
-                                    LifeCell {
-                                        alive: false,
-                                        x: cell.x + dx,
-                                        y: cell.y + dy,
-                                    },
-                                ),
+                            if dx == 0 && dy == 0 {
+                                continue;
+                            }
+                            let new = (x + dx, y + dy);
+                            match self.active_cells.get(&new) {
+                                None => deltas.push((Some(false), new)),
                                 Some(_) => continue,
-                            };
+                            }
                         }
                     }
                 }
-                (false, 0) => (),
+                (false, 0) => {
+                    deltas.push((None, *pos));
+                }
                 (false, _) => {
-                    new_cells.insert(*pos, *cell);
+                    deltas.push((Some(false), *pos));
                 }
             }
         }
-        self.active_cells = new_cells;
+        for (maybe_change, pos) in deltas {
+            if let Some(change) = maybe_change {
+                self.active_cells.insert(pos, change);
+            } else {
+                self.active_cells.remove(&pos);
+            }
+        }
         self.generations += 1;
     }
 
     pub fn num_alive(&self) -> i32 {
         let mut count = 0;
-        for cell in self.active_cells.values() {
-            if cell.alive {
+        for &cell in self.active_cells.values() {
+            if cell {
                 count += 1;
             }
         }

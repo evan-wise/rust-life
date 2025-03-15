@@ -76,7 +76,7 @@ impl Screen {
         for y in (y0..y1).rev() {
             for x in x0..x1 {
                 match (x, y, program.world.get(x, y)) {
-                    (_x, _y, Some(cell)) if cell.alive => print!("█"),
+                    (_x, _y, Some(cell)) if cell => print!("█"),
                     (_, _, Some(_)) => print!("░"),
                     (x, y, None) if x == 0 && y == 0 => print!("●"),
                     (x, y, None) if x % 4 == 0 && y % 4 == 0 => print!("┼"),
@@ -96,10 +96,10 @@ impl Screen {
         }
 
         let status = format!(
-            "alive: {}, generations: {}, framerate: {:.2}Hz",
+            "alive: {}, generations: {}, tickrate: {:.2}Hz",
             program.world.num_alive(),
             program.world.generations,
-            program.framerate,
+            program.tickrate,
         );
         let pad = std::iter::repeat(" ")
             .take(usize::from(self.width) - status.len())

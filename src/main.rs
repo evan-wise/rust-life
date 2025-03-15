@@ -5,7 +5,7 @@ use std::io;
 use std::time::{Duration, Instant};
 mod life;
 mod ui;
-pub use crate::life::{LifeCell, LifePattern, LifeWorld};
+pub use crate::life::{LifePattern, LifeWorld};
 use crate::ui::Screen;
 
 fn main() -> Result<(), ProgramError> {
@@ -45,7 +45,7 @@ struct Program {
     pub world: LifeWorld,
     pub screen: Screen,
     pub timestep_ms: u32,
-    pub framerate: f64,
+    pub tickrate: f64,
 }
 
 impl Program {
@@ -69,7 +69,7 @@ impl Program {
             world,
             screen,
             timestep_ms,
-            framerate: 1000. / timestep_ms as f64,
+            tickrate: 1000. / timestep_ms as f64,
         })
     }
 
@@ -96,7 +96,7 @@ impl Program {
                     }
                     self.handle_input()?;
                     self.screen.render(&self)?;
-                    self.framerate = 1000. / loop_start.elapsed().as_millis() as f64;
+                    self.tickrate = 1000. / loop_start.elapsed().as_millis() as f64;
                     timestep += loop_start.elapsed();
                 }
                 Ok(())
