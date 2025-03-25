@@ -27,40 +27,40 @@ impl LifeWorld {
         let mut world = LifeWorld::new();
         match pattern {
             LifePattern::Glider => {
-                world.raise_cell(0, 0);
-                world.raise_cell(1, 0);
-                world.raise_cell(2, 0);
-                world.raise_cell(2, 1);
-                world.raise_cell(1, 2);
+                world.raise(0, 0);
+                world.raise(1, 0);
+                world.raise(2, 0);
+                world.raise(2, 1);
+                world.raise(1, 2);
             }
             LifePattern::Blinker => {
-                world.raise_cell(0, 0);
-                world.raise_cell(0, 1);
-                world.raise_cell(0, 2);
+                world.raise(0, 0);
+                world.raise(0, 1);
+                world.raise(0, 2);
             }
             LifePattern::Beacon => {
-                world.raise_cell(0, 0);
-                world.raise_cell(0, 1);
-                world.raise_cell(1, 0);
-                world.raise_cell(1, 1);
-                world.raise_cell(2, 2);
-                world.raise_cell(3, 2);
-                world.raise_cell(2, 3);
-                world.raise_cell(3, 3);
+                world.raise(0, 0);
+                world.raise(0, 1);
+                world.raise(1, 0);
+                world.raise(1, 1);
+                world.raise(2, 2);
+                world.raise(3, 2);
+                world.raise(2, 3);
+                world.raise(3, 3);
             }
             LifePattern::Random(size) => {
                 let side = (*size as f64).sqrt().round() as i32;
                 for _ in 0..*size {
                     let x = random::<i32>() % side;
                     let y = random::<i32>() % side;
-                    world.raise_cell(x, y);
+                    world.raise(x, y);
                 }
             }
         }
         world
     }
 
-    pub fn raise_cell(&mut self, x: i32, y: i32) {
+    pub fn raise(&mut self, x: i32, y: i32) {
         for dy in -1..=1 {
             for dx in -1..=1 {
                 if dx == 0 && dy == 0 {
@@ -70,6 +70,10 @@ impl LifeWorld {
                 }
             }
         }
+    }
+
+    pub fn lower(&mut self, x: i32, y: i32) {
+        self.active_cells.insert((x, y), false);
     }
 
     pub fn get(&self, x: i32, y: i32) -> Option<bool> {
@@ -95,17 +99,12 @@ impl LifeWorld {
     }
 
     pub fn evolve(&mut self) {
-
         let mut deltas = Vec::new();
         for (pos, cell) in &self.active_cells {
             let &(x, y) = pos;
-            let live_neighbors = self
-                .get_neighbors(x, y)
-                .into_iter()
-                .filter(|c| *c)
-                .count();
+            let live_neighbors = self.get_neighbors(x, y).into_iter().filter(|c| *c).count();
             match (cell, live_neighbors) {
-                (true, 2) | (true, 3) => {}
+                (true, 2) | (true, 3) => (),
                 (true, _) => {
                     deltas.push((Some(false), *pos));
                 }
@@ -150,5 +149,108 @@ impl LifeWorld {
             }
         }
         count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn raise_at_single_locations() {
+        for [x, y] in [[0, 0], [0, 1], [1, 0], [1, 1]] {
+            let mut world = LifeWorld::new();
+            world.raise(x, y);
+            assert_eq!(world.get(x, y), Some(true));
+            assert_eq!(world.get(x + 1, y), Some(false));
+            assert_eq!(world.get(x - 1, y), Some(false));
+            assert_eq!(world.get(x, y + 1), Some(false));
+            assert_eq!(world.get(x, y - 1), Some(false));
+            assert_eq!(world.get(x + 1, y + 1), Some(false));
+            assert_eq!(world.get(x + 1, y - 1), Some(false));
+            assert_eq!(world.get(x - 1, y - 1), Some(false));
+            assert_eq!(world.get(x - 1, y + 1), Some(false));
+            assert_eq!(world.get(x, y + 2), None);
+            assert_eq!(world.get(x, y - 2), None);
+            assert_eq!(world.get(x + 2, y), None);
+            assert_eq!(world.get(x - 2, y), None);
+        }
+    }
+
+    #[test]
+    fn compute_counts_after_raising() {
+        for expected in [1, 2, 5, 10, 25] {
+            let mut world = LifeWorld::new();
+            for i in 0..expected {
+                world.raise(i, 0);
+            }
+            assert_eq!(world.num_alive(), expected);
+        }
+    }
+
+    #[test]
+    fn increment_generations_on_evolve() {
+        for expected in [1, 2, 5, 10, 25] {
+            let mut world = LifeWorld::new();
+            for _ in 0..expected {
+                world.evolve();
+            }
+            assert_eq!(world.generations, expected);
+        }
+    }
+
+    #[test]
+    fn live_cell_with_n_living_neighbors() {
+        let positions = [
+            [0, 1],
+            [1, 0],
+            [1, 1],
+            [0, -1],
+            [-1, 0],
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+        ];
+        for n in 0..=8 {
+            let mut world = LifeWorld::new();
+            world.raise(0, 0);
+            for [x, y] in &positions[0..n] {
+                world.raise(*x, *y);
+            }
+            world.evolve();
+            match n {
+                2 | 3 => assert_eq!(world.get(0, 0), Some(true)),
+                _ => assert_eq!(world.get(0, 0), Some(false)),
+            }
+        }
+    }
+
+    #[test]
+    fn dead_cell_with_n_living_neighbors() {
+        let positions = [
+            [0, 1],
+            [1, 0],
+            [1, 1],
+            [0, -1],
+            [-1, 0],
+            [-1, -1],
+            [-1, 1],
+            [1, -1],
+        ];
+        for n in 0..=8 {
+            let mut world = LifeWorld::new();
+            for [x, y] in &positions[0..n] {
+                world.raise(*x, *y);
+            }
+            if n == 0 {
+                world.lower(0, 0);
+            }
+            world.evolve();
+            match n {
+                3 => assert_eq!(world.get(0, 0), Some(true)),
+                0 => assert_eq!(world.get(0, 0), None),
+                _ => assert_eq!(world.get(0, 0), Some(false)),
+            }
+        }
     }
 }
