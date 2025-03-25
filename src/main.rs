@@ -26,7 +26,7 @@ struct Args {
 
 impl ValueEnum for LifePattern {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Glider, Self::Blinker, Self::Beacon, Self::Random(100)]
+        &[Self::Glider, Self::Blinker, Self::Beacon, Self::Random(10000)]
     }
 
     fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {

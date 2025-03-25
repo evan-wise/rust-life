@@ -42,10 +42,11 @@ a dead neighbor.
 
 ## To-Do
 
-- Test performance for larger grids
 - Add the ability to manually raise and kill cells.
+- Add tests for possible order dependent bugs.
 - Add tests for main and UI
 - Add "blank" pattern and make this default.
 - Add smoothing to framerate display.
 - Add "splatter" feature to randomly add cells to visible area.
+- Rewind feature.
 
