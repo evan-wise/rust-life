@@ -1,14 +1,14 @@
+use anyhow::{anyhow, Result};
 use clap::{Parser, ValueEnum};
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ctrlc;
-use std::io;
 use std::time::{Duration, Instant};
 mod life;
 mod ui;
 pub use crate::life::{LifePattern, LifeWorld};
 use crate::ui::Screen;
 
-fn main() -> Result<(), ProgramError> {
+fn main() -> Result<()> {
     let args = Args::parse();
     let mut program = Program::new(args)?;
     program.run()?;
@@ -49,7 +49,7 @@ struct Program {
 }
 
 impl Program {
-    fn new(args: Args) -> Result<Self, ProgramError> {
+    fn new(args: Args) -> Result<Self> {
         let state = State::Setup;
         let timestep_ms = args.timestep;
 
@@ -73,7 +73,7 @@ impl Program {
         })
     }
 
-    fn run(&mut self) -> Result<(), ProgramError> {
+    fn run(&mut self) -> Result<()> {
         match self.state {
             State::Setup => {
                 self.screen.clear()?;
@@ -102,14 +102,12 @@ impl Program {
                 Ok(())
             }
             _ => {
-                return Err(ProgramError::CommandError(
-                    "Run called in invalid state".to_string(),
-                ))
+                return Err(anyhow!("Run called in invalid state"))
             }
         }
     }
 
-    fn handle_input(&mut self) -> Result<(), ProgramError> {
+    fn handle_input(&mut self) -> Result<()> {
         if event::poll(Duration::from_millis(10))? {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
@@ -166,7 +164,7 @@ enum State {
 }
 
 impl State {
-    pub fn handle_command(&mut self, command: &Command) -> Result<&State, String> {
+    pub fn handle_command(&mut self, command: &Command) -> Result<&State> {
         match (self.clone(), command) {
             (Self::Setup, Command::Start) | (Self::Paused, Command::Resume) => {
                 *self = Self::Running;
@@ -183,45 +181,10 @@ impl State {
                 *self = Self::Done;
                 Ok(self)
             }
-            _ => Err(format!(
+            _ => Err(anyhow!(
                 "Invalid command {:?} for state {:?}",
                 command, self
             )),
         }
-    }
-}
-
-#[derive(Debug)]
-enum ProgramError {
-    IoError(io::Error),
-    CtrlcError(ctrlc::Error),
-    CommandError(String),
-}
-
-impl std::fmt::Display for ProgramError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::IoError(e) => write!(f, "IoError: {:?}", e),
-            Self::CtrlcError(e) => write!(f, "CtrlcError: {:?}", e),
-            Self::CommandError(e) => write!(f, "CommandError: {:?}", e),
-        }
-    }
-}
-
-impl From<io::Error> for ProgramError {
-    fn from(e: io::Error) -> Self {
-        Self::IoError(e)
-    }
-}
-
-impl From<ctrlc::Error> for ProgramError {
-    fn from(e: ctrlc::Error) -> Self {
-        Self::CtrlcError(e)
-    }
-}
-
-impl From<String> for ProgramError {
-    fn from(e: String) -> Self {
-        Self::CommandError(e)
     }
 }

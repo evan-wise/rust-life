@@ -42,10 +42,9 @@ a dead neighbor.
 
 ## To-Do
 
-- Add tests
-- Switch to anyhow
 - Test performance for larger grids
 - Add the ability to manually raise and kill cells.
+- Add tests for main and UI
 - Add "blank" pattern and make this default.
 - Add smoothing to framerate display.
 - Add "splatter" feature to randomly add cells to visible area.

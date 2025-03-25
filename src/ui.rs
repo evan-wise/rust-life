@@ -1,3 +1,4 @@
+use anyhow::Result;
 use crate::Program;
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::terminal::{
@@ -27,7 +28,7 @@ pub struct Screen {
 }
 
 impl Screen {
-    pub fn new() -> Result<Screen, io::Error> {
+    pub fn new() -> Result<Screen> {
         Screen::acquire_terminal()?;
         let (w, h) = size()?;
         let camera = Camera::new();
@@ -38,7 +39,7 @@ impl Screen {
         })
     }
 
-    pub fn acquire_terminal() -> Result<(), io::Error> {
+    pub fn acquire_terminal() -> Result<()> {
         let mut stdout = io::stdout();
         stdout.execute(EnterAlternateScreen)?;
         enable_raw_mode()?;
@@ -46,7 +47,7 @@ impl Screen {
         Ok(())
     }
 
-    pub fn release_terminal() -> Result<(), io::Error> {
+    pub fn release_terminal() -> Result<()> {
         let mut stdout = io::stdout();
         stdout.execute(LeaveAlternateScreen)?;
         disable_raw_mode()?;
@@ -54,19 +55,19 @@ impl Screen {
         Ok(())
     }
 
-    pub fn clear(&self) -> Result<(), io::Error> {
+    pub fn clear(&self) -> Result<()> {
         let mut stdout = io::stdout();
         stdout.execute(Clear(ClearType::All))?;
         Ok(())
     }
 
-    pub fn reset_cursor(&self) -> Result<(), io::Error> {
+    pub fn reset_cursor(&self) -> Result<()> {
         let mut stdout = io::stdout();
         stdout.execute(MoveTo(0, 0))?;
         Ok(())
     }
 
-    pub fn render(&self, program: &Program) -> Result<(), io::Error> {
+    pub fn render(&self, program: &Program) -> Result<()> {
         self.reset_cursor()?;
         let x0 = self.camera.x - (self.width as i32 / 2);
         let y0 = self.camera.y - (self.height as i32 / 2) + 1;
