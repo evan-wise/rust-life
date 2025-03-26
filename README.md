@@ -19,9 +19,16 @@ The program accepts two command line options.
 - `-p` which accepts an argument to specify an initial pattern of cells. The
   available patterns are: glider, beacon, blinker, and random.
 
-When the TUI is active you can move the viewport around with the arrow keys,
-start and stop the simulation with the spacebar, move the view back to the
-origin using the `o` key, or quit the program with `q`.
+When the TUI is active you can move the viewport, pause the simulation, or
+manually add or remove cells. The keybindings are summarized below:
+
+- `q`/`Esc`: Quit
+- `Space`: Play/Pause
+- `←↓↑→`/`hjkl`: Move viewport
+- `o`: Center viewport on the origin
+- `wasd`: Move cursor
+- `e`: Toggle cell under cursor
+- `c`: Center cursor in viewport
 
 ## Technical Details
 
@@ -42,11 +49,9 @@ a dead neighbor.
 
 ## To-Do
 
-- Add the ability to manually raise and kill cells.
+- Add "blank" pattern and make this default.
 - Add tests for possible order dependent bugs.
 - Add tests for main and UI
-- Add "blank" pattern and make this default.
-- Add smoothing to framerate display.
 - Add "splatter" feature to randomly add cells to visible area.
 - Rewind feature.
 
