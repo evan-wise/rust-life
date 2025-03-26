@@ -91,11 +91,11 @@ impl Program {
                     }
                     let loop_start = Instant::now();
                     if timestep + Duration::from_millis(10)
-                        < Duration::from_millis(self.timestep_ms.into())
+                        < Duration::from_millis(self.timestep_ms.into()) || self.state == State::Paused
                     {
                         self.handle_input()?;
                     }
-                    if let State::Running = self.state {
+                    if self.state == State::Running {
                         if timestep >= Duration::from_millis(self.timestep_ms.into()) {
                             self.world.evolve();
                             self.tickrate = 1000. / timestep.as_millis() as f64;
@@ -159,7 +159,7 @@ enum Command {
     Quit,
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 enum State {
     Setup,
     Running,
@@ -193,3 +193,4 @@ impl State {
         }
     }
 }
+
