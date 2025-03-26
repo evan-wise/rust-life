@@ -1,11 +1,12 @@
 use crate::Program;
 use anyhow::Result;
+use crossterm::ExecutableCommand;
 use crossterm::cursor::{Hide, MoveTo, Show};
+use crossterm::style::{SetForegroundColor, SetBackgroundColor, ResetColor, Color};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen,
     LeaveAlternateScreen,
 };
-use crossterm::ExecutableCommand;
 use std::io::{self, Write};
 
 #[derive(Debug)]
@@ -76,6 +77,12 @@ impl Screen {
 
         for y in (y0..y1).rev() {
             for x in x0..x1 {
+                let (cx, cy) = program.cursor;
+                let mut stdout = io::stdout();
+                if x == cx && y == cy {
+                    stdout.execute(SetForegroundColor(Color::Green))?;
+                    stdout.execute(SetBackgroundColor(Color::Green))?;
+                }
                 match (x, y, program.world.get(x, y)) {
                     (_x, _y, Some(cell)) if cell => print!("█"),
                     (_, _, Some(_)) => print!("░"),
@@ -84,6 +91,9 @@ impl Screen {
                     (x, _, None) if x % 8 == 0 => print!("│"),
                     (_, y, None) if y % 8 == 0 => print!("─"),
                     (_, _, _) => print!(" "),
+                }
+                if x == cx && y == cy {
+                    stdout.execute(ResetColor)?;
                 }
             }
         }

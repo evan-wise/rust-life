@@ -48,6 +48,7 @@ impl ValueEnum for LifePattern {
 struct Program {
     pub state: State,
     pub world: LifeWorld,
+    pub cursor: Position,
     pub screen: Screen,
     pub timestep_ms: u32,
     pub tickrate: f64,
@@ -75,6 +76,7 @@ impl Program {
             screen,
             timestep_ms,
             tickrate: 1000. / timestep_ms as f64,
+            cursor: (0, 0),
         })
     }
 
@@ -127,17 +129,35 @@ impl Program {
                         }
                         _ => (),
                     },
-                    KeyCode::Up => {
+                    KeyCode::Up | KeyCode::Char('k') => {
                         self.screen.camera.y += 1;
                     }
-                    KeyCode::Down => {
+                    KeyCode::Down | KeyCode::Char('j') => {
                         self.screen.camera.y -= 1;
                     }
-                    KeyCode::Left => {
+                    KeyCode::Left | KeyCode::Char('h') => {
                         self.screen.camera.x -= 1;
                     }
-                    KeyCode::Right => {
+                    KeyCode::Right | KeyCode::Char('l') => {
                         self.screen.camera.x += 1;
+                    }
+                    KeyCode::Char('w') => {
+                        self.cursor.1 += 1;
+                    }
+                    KeyCode::Char('s') => {
+                        self.cursor.1 -= 1;
+                    }
+                    KeyCode::Char('a') => {
+                        self.cursor.0 -= 1;
+                    }
+                    KeyCode::Char('d') => {
+                        self.cursor.0 += 1;
+                    }
+                    KeyCode::Char('c') => {
+                        self.cursor = (self.screen.camera.x, self.screen.camera.y);
+                    }
+                    KeyCode::Char('e') => {
+                        self.world.toggle(self.cursor.0, self.cursor.1);
                     }
                     KeyCode::Char('o') => {
                         self.screen.camera.x = 0;
@@ -194,3 +214,4 @@ impl State {
     }
 }
 
+type Position = (i32, i32);

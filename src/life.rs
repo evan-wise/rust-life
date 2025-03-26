@@ -61,19 +61,36 @@ impl LifeWorld {
     }
 
     pub fn raise(&mut self, x: i32, y: i32) {
+        self.active_cells.insert((x, y), true);
         for dy in -1..=1 {
             for dx in -1..=1 {
                 if dx == 0 && dy == 0 {
-                    self.active_cells.insert((x, y), true);
-                } else {
-                    self.active_cells.entry((x + dx, y + dy)).or_insert(false);
+                    continue;
                 }
+                self.active_cells.entry((x + dx, y + dy)).or_insert(false);
             }
         }
     }
 
     pub fn lower(&mut self, x: i32, y: i32) {
         self.active_cells.insert((x, y), false);
+    }
+
+    pub fn toggle(&mut self, x: i32, y: i32) {
+        match self.active_cells.get_mut(&(x, y)) {
+            Some(cell) => *cell = !*cell,
+            None => {
+                self.active_cells.insert((x, y), true);
+                for dy in -1..=1 {
+                    for dx in -1..=1 {
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
+                        self.active_cells.entry((x + dx, y + dy)).or_insert(false);
+                    }
+                }
+            }
+        }
     }
 
     pub fn get(&self, x: i32, y: i32) -> Option<bool> {
