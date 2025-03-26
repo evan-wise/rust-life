@@ -93,7 +93,8 @@ impl Program {
                     }
                     let loop_start = Instant::now();
                     if timestep + Duration::from_millis(10)
-                        < Duration::from_millis(self.timestep_ms.into()) || self.state == State::Paused
+                        < Duration::from_millis(self.timestep_ms.into())
+                        || self.state == State::Paused
                     {
                         self.handle_input()?;
                     }

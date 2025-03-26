@@ -1,12 +1,12 @@
 use crate::Program;
 use anyhow::Result;
-use crossterm::ExecutableCommand;
 use crossterm::cursor::{Hide, MoveTo, Show};
-use crossterm::style::{SetForegroundColor, SetBackgroundColor, ResetColor, Color};
+use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen,
     LeaveAlternateScreen,
 };
+use crossterm::ExecutableCommand;
 use std::io::{self, Write};
 
 #[derive(Debug)]
