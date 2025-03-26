@@ -49,9 +49,11 @@ a dead neighbor.
 
 ## To-Do
 
-- Add "blank" pattern and make this default.
+- Fix bug with toggle for existing but dead cells.
+- Investigate bug with dead cells being removed prematurely.
 - Add tests for possible order dependent bugs.
 - Add tests for main and UI
 - Add "splatter" feature to randomly add cells to visible area.
 - Rewind feature.
+- CLI option to start paused, start paused automatically if pattern is blank.
 

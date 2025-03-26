@@ -20,13 +20,14 @@ fn main() -> Result<()> {
 struct Args {
     #[arg(short = 't', long = "timestep", default_value = "100")]
     timestep: u32,
-    #[arg(short = 'p', long = "pattern", value_enum, default_value_t = LifePattern::Glider)]
+    #[arg(short = 'p', long = "pattern", value_enum, default_value_t = LifePattern::Blank)]
     pattern: LifePattern,
 }
 
 impl ValueEnum for LifePattern {
     fn value_variants<'a>() -> &'a [Self] {
         &[
+            Self::Blank,
             Self::Glider,
             Self::Blinker,
             Self::Beacon,
@@ -36,6 +37,7 @@ impl ValueEnum for LifePattern {
 
     fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
         match self {
+            Self::Blank => Some(clap::builder::PossibleValue::new("blank").alias("b")),
             Self::Glider => Some(clap::builder::PossibleValue::new("glider").alias("g")),
             Self::Blinker => Some(clap::builder::PossibleValue::new("blinker").alias("bl")),
             Self::Beacon => Some(clap::builder::PossibleValue::new("beacon").alias("be")),

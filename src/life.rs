@@ -2,14 +2,6 @@ use rand::random;
 use rustc_hash::FxHashMap;
 
 #[derive(Clone, Debug)]
-pub enum LifePattern {
-    Glider,
-    Blinker,
-    Beacon,
-    Random(usize),
-}
-
-#[derive(Clone, Debug)]
 pub struct LifeWorld {
     active_cells: FxHashMap<(i32, i32), bool>,
     pub generations: usize,
@@ -26,6 +18,7 @@ impl LifeWorld {
     pub fn from(pattern: &LifePattern) -> LifeWorld {
         let mut world = LifeWorld::new();
         match pattern {
+            LifePattern::Blank => (),
             LifePattern::Glider => {
                 world.raise(0, 0);
                 world.raise(1, 0);
@@ -167,6 +160,15 @@ impl LifeWorld {
         }
         count
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum LifePattern {
+    Blank,
+    Glider,
+    Blinker,
+    Beacon,
+    Random(usize),
 }
 
 #[cfg(test)]
