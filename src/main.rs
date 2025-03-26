@@ -171,7 +171,7 @@ impl Program {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 enum Command {
     Start,
     Pause,
