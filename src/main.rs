@@ -81,22 +81,21 @@ impl Program {
 
                 let mut timestep = Duration::new(0, 0);
                 loop {
-                    let loop_start = Instant::now();
-                    match self.state {
-                        State::Running => {
-                            if timestep >= Duration::from_millis(self.timestep_ms.into()) {
-                                timestep = Duration::new(0, 0);
-                                self.world.evolve();
-                            }
-                        }
-                        State::Done => {
-                            break;
-                        }
-                        _ => (),
+                    if let State::Done = self.state {
+                        break;
                     }
-                    self.handle_input()?;
+                    let loop_start = Instant::now();
+                    if timestep + Duration::from_millis(10) < Duration::from_millis(self.timestep_ms.into()) {
+                        self.handle_input()?;
+                    }
+                    if let State::Running = self.state {
+                        if timestep >= Duration::from_millis(self.timestep_ms.into()) {
+                            self.world.evolve();
+                            self.tickrate = 1000. / timestep.as_millis() as f64;
+                            timestep = Duration::new(0, 0);
+                        }
+                    }
                     self.screen.render(&self)?;
-                    self.tickrate = 1000. / loop_start.elapsed().as_millis() as f64;
                     timestep += loop_start.elapsed();
                 }
                 Ok(())
