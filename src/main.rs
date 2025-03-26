@@ -26,7 +26,12 @@ struct Args {
 
 impl ValueEnum for LifePattern {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Glider, Self::Blinker, Self::Beacon, Self::Random(10000)]
+        &[
+            Self::Glider,
+            Self::Blinker,
+            Self::Beacon,
+            Self::Random(10000),
+        ]
     }
 
     fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
@@ -85,7 +90,9 @@ impl Program {
                         break;
                     }
                     let loop_start = Instant::now();
-                    if timestep + Duration::from_millis(10) < Duration::from_millis(self.timestep_ms.into()) {
+                    if timestep + Duration::from_millis(10)
+                        < Duration::from_millis(self.timestep_ms.into())
+                    {
                         self.handle_input()?;
                     }
                     if let State::Running = self.state {
@@ -100,9 +107,7 @@ impl Program {
                 }
                 Ok(())
             }
-            _ => {
-                return Err(anyhow!("Run called in invalid state"))
-            }
+            _ => return Err(anyhow!("Run called in invalid state")),
         }
     }
 
@@ -182,7 +187,8 @@ impl State {
             }
             _ => Err(anyhow!(
                 "Invalid command {:?} for state {:?}",
-                command, self
+                command,
+                self
             )),
         }
     }

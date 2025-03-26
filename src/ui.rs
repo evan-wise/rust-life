@@ -1,5 +1,5 @@
-use anyhow::Result;
 use crate::Program;
+use anyhow::Result;
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen,
