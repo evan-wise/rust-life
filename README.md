@@ -35,25 +35,16 @@ manually add or remove cells. The keybindings are summarized below:
 Internally, the cells are stored in a hashmap to allow the data structure to
 expand and contract dynamically. When a cell becomes alive, any missing
 neighbors are added to the hashmap, and dead cells with no living neighbors are
-removed from the hashmap. The idea is to avoid iterating over and checking many
-dead cells when dealing with large maps. There are other ways to make large
-simulations more efficient (e.g. we could dynamically add and remove "chunks" of
-the life grid) but this seemed like a simple and elegant way.
-
-This does create an opportunity for some tricky bugs if we are not careful about
-making sure the operations are order independent. For example, at one point
-there was a bug when trying to bring two adjacent cells to life. The insertion
-code was ignoring any cells that already existed so the second cell would never
-get created if the first cell's insertion code had already filled its spot with
-a dead neighbor.
+removed from the hashmap. The number of neighbors is cached in the cell data
+structure and updated when cells change stated. The idea is to avoid iterating
+over and checking many dead cells when dealing with large maps. There are other
+ways to make large simulations more efficient (e.g. we could dynamically add and
+remove "chunks" of the life grid) but this seemed like a simple and elegant way.
 
 ## To-Do
 
-- Fix bug with toggle for existing but dead cells.
-- Investigate bug with dead cells being removed prematurely.
-- Add tests for possible order dependent bugs.
+- CLI option to start paused, start paused automatically if pattern is blank.
 - Add tests for main and UI
 - Add "splatter" feature to randomly add cells to visible area.
 - Rewind feature.
-- CLI option to start paused, start paused automatically if pattern is blank.
 
