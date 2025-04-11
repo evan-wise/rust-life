@@ -1,9 +1,24 @@
 use rand::random;
 use rustc_hash::FxHashMap;
 
+#[derive(PartialEq, Clone, Debug)]
+pub struct LifeCell {
+    pub alive: bool,
+    pub num_neighbors: u8,
+}
+
+impl LifeCell {
+    pub fn new(alive: bool) -> LifeCell {
+        LifeCell {
+            alive,
+            num_neighbors: 0,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct LifeWorld {
-    active_cells: FxHashMap<(i32, i32), bool>,
+    active_cells: FxHashMap<(i32, i32), LifeCell>,
     pub generations: usize,
 }
 
@@ -54,111 +69,129 @@ impl LifeWorld {
     }
 
     pub fn raise(&mut self, x: i32, y: i32) {
-        self.active_cells.insert((x, y), true);
-        for dy in -1..=1 {
-            for dx in -1..=1 {
-                if dx == 0 && dy == 0 {
-                    continue;
-                }
-                self.active_cells.entry((x + dx, y + dy)).or_insert(false);
-            }
-        }
+        self.set_cell(x, y, true);
     }
 
     pub fn lower(&mut self, x: i32, y: i32) {
-        self.active_cells.insert((x, y), false);
+        self.set_cell(x, y, false);
     }
 
     pub fn toggle(&mut self, x: i32, y: i32) {
-        match self.active_cells.get_mut(&(x, y)) {
-            Some(cell) => *cell = !*cell,
-            None => {
-                self.active_cells.insert((x, y), true);
-                for dy in -1..=1 {
-                    for dx in -1..=1 {
-                        if dx == 0 && dy == 0 {
-                            continue;
-                        }
-                        self.active_cells.entry((x + dx, y + dy)).or_insert(false);
-                    }
-                }
-            }
-        }
+        self.set_cell(x, y, !self.alive(x, y));
     }
 
     pub fn get(&self, x: i32, y: i32) -> Option<bool> {
-        match self.active_cells.get(&(x, y)) {
-            Some(cell) => Some(*cell),
-            None => None,
-        }
+        self.active_cells.get(&(x, y)).map(|cell| cell.alive)
     }
 
-    pub fn get_neighbors(&self, x: i32, y: i32) -> Vec<bool> {
-        let mut neighbors = Vec::new();
-        for dy in -1..=1 {
-            for dx in -1..=1 {
-                if dx == 0 && dy == 0 {
-                    continue;
-                }
-                if let Some(cell) = self.get(x + dx, y + dy) {
-                    neighbors.push(cell);
-                }
-            }
-        }
-        neighbors
+    pub fn alive(&self, x: i32, y: i32) -> bool {
+        self.get(x, y).unwrap_or(false)
     }
 
     pub fn evolve(&mut self) {
         let mut deltas = Vec::new();
         for (pos, cell) in &self.active_cells {
-            let &(x, y) = pos;
-            let live_neighbors = self.get_neighbors(x, y).into_iter().filter(|c| *c).count();
-            match (cell, live_neighbors) {
-                (true, 2) | (true, 3) => (),
-                (true, _) => {
-                    deltas.push((Some(false), *pos));
+            match cell {
+                LifeCell {
+                    alive: true,
+                    num_neighbors: 2 | 3,
+                } => (),
+                LifeCell {
+                    alive: true,
+                    num_neighbors: _,
+                } => {
+                    deltas.push((false, *pos));
                 }
-                (false, 3) => {
-                    deltas.push((Some(true), *pos));
-                    for dy in -1..=1 {
-                        for dx in -1..=1 {
-                            if dx == 0 && dy == 0 {
-                                continue;
-                            }
-                            let new = (x + dx, y + dy);
-                            match self.active_cells.get(&new) {
-                                None => deltas.push((Some(false), new)),
-                                Some(_) => continue,
-                            }
-                        }
-                    }
+                LifeCell {
+                    alive: false,
+                    num_neighbors: 3,
+                } => {
+                    deltas.push((true, *pos));
                 }
-                (false, 0) => {
-                    deltas.push((None, *pos));
-                }
-                (false, _) => {
-                    deltas.push((Some(false), *pos));
-                }
+                LifeCell {
+                    alive: false,
+                    num_neighbors: _,
+                } => (),
             }
         }
-        for (maybe_change, pos) in deltas {
-            if let Some(change) = maybe_change {
-                self.active_cells.insert(pos, change);
-            } else {
-                self.active_cells.remove(&pos);
-            }
+        for (change, pos) in deltas {
+            let (x, y) = pos;
+            self.set_cell(x, y, change);
         }
         self.generations += 1;
     }
 
     pub fn num_alive(&self) -> i32 {
         let mut count = 0;
-        for &cell in self.active_cells.values() {
-            if cell {
+        for cell in self.active_cells.values() {
+            if cell.alive {
                 count += 1;
             }
         }
         count
+    }
+
+    fn set_cell(&mut self, x: i32, y: i32, alive: bool) {
+        let dirty: bool;
+        let mut new = false;
+
+        match self.active_cells.entry((x, y)) {
+            std::collections::hash_map::Entry::Occupied(mut occupied) => {
+                let cell = occupied.get_mut();
+                dirty = cell.alive != alive;
+                cell.alive = alive;
+            }
+            std::collections::hash_map::Entry::Vacant(vacant) => {
+                vacant.insert(LifeCell::new(alive));
+                dirty = alive;
+                new = alive;
+            }
+        }
+
+        if !dirty {
+            return;
+        }
+
+        for dy in -1..=1 {
+            for dx in -1..=1 {
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
+                if new && self.alive(x + dx, y + dy) {
+                    self.active_cells
+                        .entry((x, y))
+                        .and_modify(|cell| cell.num_neighbors += 1);
+                }
+                if alive {
+                    let cell = self
+                        .active_cells
+                        .entry((x + dx, y + dy))
+                        .or_insert(LifeCell::new(false));
+                    cell.num_neighbors += 1;
+                } else {
+                    match self.active_cells.entry((x + dx, y + dy)) {
+                        std::collections::hash_map::Entry::Occupied(mut occupied) => {
+                            let cell = occupied.get_mut();
+                            cell.num_neighbors -= 1;
+                            if cell.num_neighbors == 0 && !cell.alive {
+                                occupied.remove();
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+        }
+
+        match self.active_cells.entry((x, y)) {
+            std::collections::hash_map::Entry::Occupied(mut occupied) => {
+                let cell = occupied.get_mut();
+                if cell.num_neighbors == 0 && !cell.alive {
+                    occupied.remove();
+                }
+            }
+            _ => (),
+        }
     }
 }
 
@@ -175,9 +208,49 @@ pub enum LifePattern {
 mod tests {
     use super::*;
 
+    const POSITIONS: [[i32; 2]; 8] = [
+        [0, 1],
+        [1, 0],
+        [1, 1],
+        [0, -1],
+        [-1, 0],
+        [-1, -1],
+        [-1, 1],
+        [1, -1],
+    ];
+
     #[test]
-    fn raise_at_single_locations() {
-        for [x, y] in [[0, 0], [0, 1], [1, 0], [1, 1]] {
+    fn raise_raises_cells() {
+        for [x, y] in POSITIONS {
+            let mut world = LifeWorld::new();
+            world.raise(x, y);
+            assert_eq!(world.alive(x, y), true);
+        }
+    }
+
+    #[test]
+    fn lower_lowers_cells() {
+        for [x, y] in POSITIONS {
+            let mut world = LifeWorld::new();
+            world.lower(x, y);
+            assert_eq!(world.alive(x, y), false);
+        }
+    }
+
+    #[test]
+    fn toggle_raises_and_lowers_cells() {
+        for [x, y] in POSITIONS {
+            let mut world = LifeWorld::new();
+            world.toggle(x, y);
+            assert_eq!(world.alive(x, y), true);
+            world.toggle(x, y);
+            assert_eq!(world.alive(x, y), false);
+        }
+    }
+
+    #[test]
+    fn raise_fills_surrounding_cells() {
+        for [x, y] in POSITIONS {
             let mut world = LifeWorld::new();
             world.raise(x, y);
             assert_eq!(world.get(x, y), Some(true));
@@ -193,6 +266,76 @@ mod tests {
             assert_eq!(world.get(x, y - 2), None);
             assert_eq!(world.get(x + 2, y), None);
             assert_eq!(world.get(x - 2, y), None);
+        }
+    }
+
+    #[test]
+    fn lower_clears_cells() {
+        for [x, y] in POSITIONS {
+            let mut world = LifeWorld::new();
+            world.raise(x, y);
+            world.lower(x, y);
+            assert_eq!(world.get(x, y), None);
+            assert_eq!(world.get(x + 1, y), None);
+            assert_eq!(world.get(x - 1, y), None);
+            assert_eq!(world.get(x, y + 1), None);
+            assert_eq!(world.get(x, y - 1), None);
+            assert_eq!(world.get(x + 1, y + 1), None);
+            assert_eq!(world.get(x + 1, y - 1), None);
+            assert_eq!(world.get(x - 1, y - 1), None);
+            assert_eq!(world.get(x - 1, y + 1), None);
+            assert_eq!(world.get(x, y + 2), None);
+            assert_eq!(world.get(x, y - 2), None);
+            assert_eq!(world.get(x + 2, y), None);
+            assert_eq!(world.get(x - 2, y), None);
+        }
+    }
+
+    #[test]
+    fn toggle_clears_cells() {
+        for [x, y] in POSITIONS {
+            let mut world = LifeWorld::new();
+            world.toggle(x, y);
+            world.toggle(x, y);
+            assert_eq!(world.get(x, y), None);
+            assert_eq!(world.get(x + 1, y), None);
+            assert_eq!(world.get(x - 1, y), None);
+            assert_eq!(world.get(x, y + 1), None);
+            assert_eq!(world.get(x, y - 1), None);
+            assert_eq!(world.get(x + 1, y + 1), None);
+            assert_eq!(world.get(x + 1, y - 1), None);
+            assert_eq!(world.get(x - 1, y - 1), None);
+            assert_eq!(world.get(x - 1, y + 1), None);
+            assert_eq!(world.get(x, y + 2), None);
+            assert_eq!(world.get(x, y - 2), None);
+            assert_eq!(world.get(x + 2, y), None);
+            assert_eq!(world.get(x - 2, y), None);
+        }
+    }
+
+    #[test]
+    fn toggle_clears_adjacent_cells() {
+        for [x, y] in POSITIONS {
+            for [dx, dy] in [[0, 1], [1, 1], [1, 0]] {
+                let mut world = LifeWorld::new();
+                world.toggle(x, y);
+                world.toggle(x + dx, y + dy);
+                world.toggle(x, y);
+                world.toggle(x + dx, y + dy);
+                assert_eq!(world.get(x + 1, y), None);
+                assert_eq!(world.get(x - 1, y), None);
+                assert_eq!(world.get(x, y + 1), None);
+                assert_eq!(world.get(x, y - 1), None);
+                assert_eq!(world.get(x + 1, y + 1), None);
+                assert_eq!(world.get(x + 1, y - 1), None);
+                assert_eq!(world.get(x - 1, y - 1), None);
+                assert_eq!(world.get(x - 1, y + 1), None);
+                assert_eq!(world.get(x + 2, y), None);
+                assert_eq!(world.get(x + 2, y + 1), None);
+                assert_eq!(world.get(x + 2, y + 2), None);
+                assert_eq!(world.get(x + 1, y + 2), None);
+                assert_eq!(world.get(x, y + 2), None);
+            }
         }
     }
 
@@ -220,45 +363,25 @@ mod tests {
 
     #[test]
     fn live_cell_with_n_living_neighbors() {
-        let positions = [
-            [0, 1],
-            [1, 0],
-            [1, 1],
-            [0, -1],
-            [-1, 0],
-            [-1, -1],
-            [-1, 1],
-            [1, -1],
-        ];
         for n in 0..=8 {
             let mut world = LifeWorld::new();
             world.raise(0, 0);
-            for [x, y] in &positions[0..n] {
+            for [x, y] in &POSITIONS[0..n] {
                 world.raise(*x, *y);
             }
             world.evolve();
             match n {
-                2 | 3 => assert_eq!(world.get(0, 0), Some(true)),
-                _ => assert_eq!(world.get(0, 0), Some(false)),
+                2 | 3 => assert_eq!(world.alive(0, 0), true),
+                _ => assert_eq!(world.alive(0, 0), false),
             }
         }
     }
 
     #[test]
     fn dead_cell_with_n_living_neighbors() {
-        let positions = [
-            [0, 1],
-            [1, 0],
-            [1, 1],
-            [0, -1],
-            [-1, 0],
-            [-1, -1],
-            [-1, 1],
-            [1, -1],
-        ];
         for n in 0..=8 {
             let mut world = LifeWorld::new();
-            for [x, y] in &positions[0..n] {
+            for [x, y] in &POSITIONS[0..n] {
                 world.raise(*x, *y);
             }
             if n == 0 {
@@ -266,9 +389,8 @@ mod tests {
             }
             world.evolve();
             match n {
-                3 => assert_eq!(world.get(0, 0), Some(true)),
-                0 => assert_eq!(world.get(0, 0), None),
-                _ => assert_eq!(world.get(0, 0), Some(false)),
+                3 => assert_eq!(world.alive(0, 0), true),
+                _ => assert_eq!(world.alive(0, 0), false),
             }
         }
     }
