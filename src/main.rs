@@ -83,40 +83,42 @@ impl Program {
     }
 
     fn run(&mut self) -> Result<()> {
-        match self.state {
-            State::Setup => {
-                self.screen.clear()?;
-                self.state.handle_command(&Command::Start)?;
+        self.state.handle_command(&Command::Start)?;
+        self.screen.clear()?;
 
-                let mut timestep = Duration::new(0, 0);
-                loop {
-                    if let State::Done = self.state {
-                        break;
-                    }
-                    let loop_start = Instant::now();
-                    if self.state != State::Running || (timestep + Duration::from_millis(10)
-                        < Duration::from_millis(self.timestep_ms.into()))
-                    {
-                        self.handle_input()?;
-                    }
+        let mut timestep = Duration::new(0, 0);
+        loop {
+            match self.state {
+                State::Done => break,
+                State::Setup => return Err(anyhow!("invalid state")),
+                State::Paused => {
+                    self.handle_input()?;
+                    self.screen.render(&self)?;
+                }
+                State::Running => {
+                    let input_time = Instant::now();
+                    self.handle_input()?;
+                    timestep += input_time.elapsed();
                     if self.state == State::Running {
                         if timestep >= Duration::from_millis(self.timestep_ms.into()) {
+                            let simulation_time = Instant::now();
                             self.world.evolve();
+                            timestep += simulation_time.elapsed();
                             self.tickrate = 1000. / timestep.as_millis() as f64;
                             timestep = Duration::new(0, 0);
                         }
                     }
+                    let render_time = Instant::now();
                     self.screen.render(&self)?;
-                    timestep += loop_start.elapsed();
+                    timestep += render_time.elapsed();
                 }
-                Ok(())
             }
-            _ => return Err(anyhow!("Run called in invalid state")),
         }
+        Ok(())
     }
 
     fn handle_input(&mut self) -> Result<()> {
-        if event::poll(Duration::from_millis(10))? {
+        if event::poll(Duration::from_millis(2))? {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
                     KeyCode::Esc | KeyCode::Char('q') => {
@@ -200,7 +202,7 @@ impl State {
                 *self = Self::Paused;
                 Ok(self)
             }
-            (Self::Running, Command::Start | Command::Resume) | (Self::Paused, Command::Pause) => {
+            (Self::Running, Command::Resume) | (Self::Paused, Command::Pause) => {
                 Ok(self)
             }
             (_, Command::Quit) => {
