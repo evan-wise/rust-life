@@ -1,5 +1,5 @@
 use crate::Program;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 use crossterm::terminal::{
@@ -8,6 +8,12 @@ use crossterm::terminal::{
 };
 use crossterm::ExecutableCommand;
 use std::io::{self, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref TERMINAL_ACQUIRED: AtomicBool = AtomicBool::new(false);
+}
 
 #[derive(Debug)]
 pub struct Camera {
@@ -41,18 +47,26 @@ impl Screen {
     }
 
     pub fn acquire_terminal() -> Result<()> {
+        if TERMINAL_ACQUIRED.compare_exchange(
+            false, true, Ordering::SeqCst, Ordering::SeqCst
+        ).is_err() {
+            return Err(anyhow!("terminal already in use"));
+        }
         let mut stdout = io::stdout();
         stdout.execute(EnterAlternateScreen)?;
-        enable_raw_mode()?;
         stdout.execute(Hide)?;
+        enable_raw_mode()?;
         Ok(())
     }
 
     pub fn release_terminal() -> Result<()> {
         let mut stdout = io::stdout();
-        stdout.execute(LeaveAlternateScreen)?;
-        disable_raw_mode()?;
-        stdout.execute(Show)?;
+        if TERMINAL_ACQUIRED.load(Ordering::SeqCst) {
+            disable_raw_mode()?;
+            stdout.execute(Show)?;
+            stdout.execute(LeaveAlternateScreen)?;
+            TERMINAL_ACQUIRED.store(false, Ordering::SeqCst);
+        }
         Ok(())
     }
 
@@ -127,5 +141,47 @@ impl Drop for Screen {
         if let Err(e) = Screen::release_terminal() {
             eprintln!("Error releasing terminal: {}", e);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crossterm::terminal::is_raw_mode_enabled;
+    use serial_test::serial;
+
+    #[test]
+    #[serial]
+    fn acquires_and_releases_terminal() -> Result<()> {
+        assert!(!is_raw_mode_enabled()?);
+        Screen::acquire_terminal()?;
+        assert!(is_raw_mode_enabled()?);
+        Screen::release_terminal()?;
+        assert!(!is_raw_mode_enabled()?);
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn creates_screen() -> Result<()> {
+        let screen = Screen::new()?;
+        assert!(screen.width > 0);
+        assert!(screen.height > 0);
+        assert!(screen.camera.x == 0);
+        assert!(screen.camera.y == 0);
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn lock_prevents_concurrent_access() -> Result<()> {
+        let screen = Screen::new()?;
+        let err = Screen::new().unwrap_err();
+        assert_eq!(err.to_string(), String::from("terminal already in use"));
+        assert!(screen.width > 0);
+        assert!(screen.height > 0);
+        assert!(screen.camera.x == 0);
+        assert!(screen.camera.y == 0);
+        Ok(())
     }
 }

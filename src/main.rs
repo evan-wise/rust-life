@@ -202,9 +202,7 @@ impl State {
                 *self = Self::Paused;
                 Ok(self)
             }
-            (Self::Running, Command::Resume) | (Self::Paused, Command::Pause) => {
-                Ok(self)
-            }
+            (Self::Running, Command::Resume) | (Self::Paused, Command::Pause) => Ok(self),
             (_, Command::Quit) => {
                 *self = Self::Done;
                 Ok(self)
@@ -219,3 +217,40 @@ impl State {
 }
 
 type Position = (i32, i32);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn starts_from_setup() -> Result<()> {
+        let mut state = State::Setup;
+        state.handle_command(&Command::Start)?;
+        assert_eq!(state, State::Running);
+        Ok(())
+    }
+
+    #[test]
+    fn resumes_from_pause() -> Result<()> {
+        let mut state = State::Paused;
+        state.handle_command(&Command::Resume)?;
+        assert_eq!(state, State::Running);
+        Ok(())
+    }
+
+    #[test]
+    fn quits_from_running() -> Result<()> {
+        let mut state = State::Running;
+        state.handle_command(&Command::Quit)?;
+        assert_eq!(state, State::Done);
+        Ok(())
+    }
+
+    #[test]
+    fn pauses_from_running() -> Result<()> {
+        let mut state = State::Running;
+        state.handle_command(&Command::Pause)?;
+        assert_eq!(state, State::Paused);
+        Ok(())
+    }
+}
