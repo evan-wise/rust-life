@@ -92,22 +92,35 @@ impl Screen {
         for y in (y0..y1).rev() {
             for x in x0..x1 {
                 let (cx, cy) = program.cursor;
+                let a = program.world.alive(x, 2 * y);
+                let b = program.world.alive(x, 2 * y + 1);
                 let mut stdout = io::stdout();
-                if x == cx && y == cy {
+
+                if x == cx && 2 * y == cy  {
                     stdout.execute(SetForegroundColor(Color::Green))?;
-                    stdout.execute(SetBackgroundColor(Color::Green))?;
-                }
-                match (x, y, program.world.get(x, y)) {
-                    (_x, _y, Some(cell)) if cell => print!("█"),
-                    (_, _, Some(_)) => print!("░"),
-                    (x, y, None) if x == 0 && y == 0 => print!("●"),
-                    (x, y, None) if x % 4 == 0 && y % 4 == 0 => print!("┼"),
-                    (x, _, None) if x % 8 == 0 => print!("│"),
-                    (_, y, None) if y % 8 == 0 => print!("─"),
-                    (_, _, _) => print!(" "),
-                }
-                if x == cx && y == cy {
+                    if b {
+                        stdout.execute(SetBackgroundColor(Color::Grey))?;
+                    }
+                    print!("▄");
                     stdout.execute(ResetColor)?;
+                } else if x == cx && 2 * y + 1 == cy {
+                    stdout.execute(SetForegroundColor(Color::Green))?;
+                    if a {
+                        stdout.execute(SetBackgroundColor(Color::Grey))?;
+                    }
+                    print!("▀");
+                    stdout.execute(ResetColor)?;
+                } else {
+                    match (x, y, a, b) {
+                        (_, _, true, true)  => print!("█"),
+                        (_, _, false, true) => print!("▀"),
+                        (_, _, true, false) => print!("▄"),
+                        (x, y, false, false) if x == 0 && y == 0 => print!("●"),
+                        (x, y, false, false) if x % 4 == 0 && y % 2 == 0 => print!("┼"),
+                        (x, _, false, false) if x % 8 == 0 => print!("│"),
+                        (x, _, false, false) if y % 4 == 0 => print!("─"),
+                        _ => print!(" "),
+                    }
                 }
             }
         }

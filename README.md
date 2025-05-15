@@ -43,7 +43,6 @@ remove "chunks" of the life grid) but this seemed like a simple and elegant way.
 
 ## To-Do
 
-- Use upper and lower half blocks for graphics.
 - CLI option to start paused, start paused automatically if pattern is blank.
 - Explore parallelism for simulation.
 - Add "splatter" feature to randomly add cells to visible area.
