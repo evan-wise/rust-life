@@ -45,6 +45,9 @@ remove "chunks" of the life grid) but this seemed like a simple and elegant way.
 
 - CLI option to start paused, start paused automatically if pattern is blank.
 - Explore parallelism for simulation.
+  - UI thread and simulation thread
+  - multiple simulation threads
 - Add "splatter" feature to randomly add cells to visible area.
+- Fix issue where vertical scroll is twice as fast
 - Rewind feature.
 

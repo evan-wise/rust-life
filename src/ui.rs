@@ -118,7 +118,7 @@ impl Screen {
                         (x, y, false, false) if x == 0 && y == 0 => print!("●"),
                         (x, y, false, false) if x % 4 == 0 && y % 2 == 0 => print!("┼"),
                         (x, _, false, false) if x % 8 == 0 => print!("│"),
-                        (x, _, false, false) if y % 4 == 0 => print!("─"),
+                        (_, y, false, false) if y % 4 == 0 => print!("─"),
                         _ => print!(" "),
                     }
                 }
