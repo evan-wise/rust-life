@@ -43,7 +43,6 @@ remove "chunks" of the life grid) but this seemed like a simple and elegant way.
 
 ## To-Do
 
-- CLI option to start paused, start paused automatically if pattern is blank.
 - Explore parallelism for simulation.
   - UI thread and simulation thread
   - multiple simulation threads
