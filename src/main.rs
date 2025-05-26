@@ -22,6 +22,8 @@ struct Args {
     timestep: u32,
     #[arg(short = 'p', long = "pattern", value_enum, default_value_t = LifePattern::Blank)]
     pattern: LifePattern,
+    #[arg(short = 'b', long = "build", default_value_t = false)]
+    build: bool,
 }
 
 impl ValueEnum for LifePattern {
@@ -54,6 +56,7 @@ struct Program {
     pub screen: Screen,
     pub timestep_ms: u32,
     pub tickrate: f64,
+    pub build_mode: bool,
 }
 
 impl Program {
@@ -79,13 +82,16 @@ impl Program {
             timestep_ms,
             tickrate: 1000. / timestep_ms as f64,
             cursor: (0, 0),
+            build_mode: args.build,
         })
     }
 
     fn run(&mut self) -> Result<()> {
         self.state.handle_command(&Command::Start)?;
         self.screen.clear()?;
-
+        if self.build_mode {
+            self.state.handle_command(&Command::Pause)?;
+        }
         let mut timestep = Duration::new(0, 0);
         loop {
             match self.state {
